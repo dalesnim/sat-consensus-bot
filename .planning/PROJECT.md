@@ -99,7 +99,8 @@ Two types get extra prompt handling: `command_of_evidence_quantitative` must res
 - *Latency.* The 30s budget must accommodate six models in one round, two of them frontier (Opus 5, GPT-6 Astra), each generating a full transcription plus four elimination reasons at up to 2000 tokens. The slowest model sets wall time. This is the primary technical risk and wants research before Phase 1 planning.
 - *Cost.* Firing both frontier models on every question is the most expensive possible configuration. The global spend cap and its degraded-mode fallback are load-bearing, not nice-to-have.
 - *Unmeasured accuracy.* The 90% accuracy bar is a stated goal with no in-v1 measurement, because the eval harness is deferred. Corrections accumulate `ground_truth` so the bar becomes measurable in v2.
-- *Model ID drift.* The configured OpenRouter IDs must be verified live at boot; several may not exist under the exact strings specified.
+- *Model ID drift.* Resolved during initialization research. Five of six IDs verified correct against OpenRouter's live catalog. `deepseek/deepseek-v4` **does not exist** as a vision model and is corrected to `deepseek/deepseek-v4.1-flash`. Boot-time validation still required, since catalogs drift.
+- *Silent failure modes.* Research identified three failures that look identical to success: correlated consensus (models agreeing and being wrong together from shared SAT test-prep exposure in pretraining), correlated OCR hallucination (all six seeing the same degraded image and fabricating the same passage text), and perceptual hash collision. With the eval harness deferred, the correction flow is the only detector in v1, so passive instrumentation — transcription divergence logging, cache-hit flags, per-lab agreement logging — must be built in from the start rather than added later.
 
 ## Constraints
 
@@ -125,6 +126,12 @@ Two types get extra prompt handling: `command_of_evidence_quantitative` must res
 | OpenRouter as the single model gateway | One key, one schema, one bill across six models from four labs. The alternative is four separate SDKs and four billing relationships. | — Pending |
 | Never assert correctness | The bot reports what models chose and how strongly they agree. Asserting an answer it can't verify is the failure mode the whole design exists to avoid. | — Pending |
 | Allowlist-only, no open access | Cost control and abuse prevention for a 10–40 person study group. | — Pending |
+| Correct `deepseek/deepseek-v4` → `deepseek/deepseek-v4.1-flash` | The originally specified ID does not exist as a vision model on OpenRouter. Verified live against the catalog during initialization research. Without the fix, boot validation would refuse to start and the fourth lab would be dead on day one. | ✓ Good |
+| Force `reasoning.effort` to none/minimal on every call | All six models are 2026-era reasoning models with a variable thinking dial. At defaults, time-to-first-token alone runs 16–131s on some of them, which breaks the 30s budget outright. This is the single highest-leverage latency mitigation and is a named task, not an implementation detail. | — Pending |
+| Report lab spread inside the majority, not just the vote count | Apple ML Research ("Nine Judges, Two Effective Votes") measured a 9-model, 7-lab panel carrying only ~2 independent votes of information due to correlated errors. 5/6 across four labs and 5/6 concentrated in two labs are very different evidence; presenting them identically overstates confidence. | — Pending |
+| Exact perceptual-hash matching only in v1, at `hash_size=16` | SAT R&W questions share a near-identical visual template across hundreds of distinct items, so fuzzy matching risks silently serving one question's answer for another. Exact-match-only structurally cannot do that. Fuzzy matching deferred until real user photos exist to tune a threshold against. | — Pending |
+| Repair retry scoped to syntax extraction only | A JSON repair retry is a second full inference call and can silently change the model's vote, corrupting the ensemble. The repair prompt must extract syntax, never re-reason. | — Pending |
+| Add five table-stakes features research found missing | Pre-flight image quality gate, `/help`, MarkdownV2 escaping, breakdown pagination, structured A/B/C/D correction buttons. Two are not optional in practice — an unescaped character means the reply fails to send at all, and "Full breakdown" routinely exceeds Telegram's 4096-char limit at six models × four choices. | — Pending |
 
 ## Evolution
 
