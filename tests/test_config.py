@@ -81,10 +81,12 @@ def test_load_roster_raises_on_invalid_reasoning(tmp_path: Path) -> None:
         load_roster(bad_file)
 
 
-def test_load_settings_raises_without_telegram_token(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_settings_raises_without_telegram_token(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-    monkeypatch.chdir(Path.cwd())
+    monkeypatch.chdir(tmp_path)
     with pytest.raises(ValidationError):
         load_settings()
 

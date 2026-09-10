@@ -46,14 +46,38 @@ def test_build_payload_sets_max_tokens() -> None:
 
 def test_build_payload_sets_response_format_from_verdict_schema() -> None:
     payload = build_payload(OPENAI_MODEL, IMAGE_URL, max_tokens=2000)
-    assert payload["response_format"] == {
-        "type": "json_schema",
-        "json_schema": {
-            "name": "verdict",
-            "strict": True,
-            "schema": Verdict.model_json_schema(),
-        },
-    }
+    response_format = payload["response_format"]
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["name"] == "verdict"
+    assert response_format["json_schema"]["strict"] is True
+    schema = response_format["json_schema"]["schema"]
+    assert set(schema["properties"]) == set(Verdict.model_json_schema()["properties"])
+
+
+def test_build_payload_schema_is_strict_for_every_object() -> None:
+    """OpenAI rejects strict schemas whose objects omit additionalProperties: false."""
+    payload = build_payload(OPENAI_MODEL, IMAGE_URL, max_tokens=2000)
+    schema = payload["response_format"]["json_schema"]["schema"]
+
+    objects: list[dict[str, object]] = []
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            if node.get("type") == "object" and isinstance(node.get("properties"), dict):
+                objects.append(node)
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+
+    walk(schema)
+    assert objects, "expected at least one object node in the verdict schema"
+    for node in objects:
+        assert node["additionalProperties"] is False
+        properties = node["properties"]
+        assert isinstance(properties, dict)
+        assert node["required"] == list(properties)
 
 
 def test_build_payload_system_message_is_byte_identical_across_models() -> None:

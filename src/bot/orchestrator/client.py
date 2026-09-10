@@ -10,7 +10,24 @@ from bot.prompts import REPAIR_PROMPT_TEMPLATE, SYSTEM_PROMPT, USER_PROMPT
 
 logger = logging.getLogger(__name__)
 
-_VERDICT_SCHEMA = Verdict.model_json_schema()
+type _Json = dict[str, "_Json"] | list["_Json"] | str | int | float | bool | None
+
+
+def _strictify(node: _Json) -> _Json:
+    """OpenAI strict mode rejects object schemas without additionalProperties: false."""
+    if isinstance(node, dict):
+        strict: dict[str, _Json] = {key: _strictify(value) for key, value in node.items()}
+        properties = strict.get("properties")
+        if strict.get("type") == "object" and isinstance(properties, dict):
+            strict["additionalProperties"] = False
+            strict["required"] = list(properties)
+        return strict
+    if isinstance(node, list):
+        return [_strictify(item) for item in node]
+    return node
+
+
+_VERDICT_SCHEMA = _strictify(Verdict.model_json_schema())
 
 
 class ModelCallResult(BaseModel):
