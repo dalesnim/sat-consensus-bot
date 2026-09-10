@@ -19,12 +19,7 @@ from bot.orchestrator import client as C  # noqa: E402
 from bot.orchestrator.contract import Verdict  # noqa: E402
 
 CANDIDATES: list[ModelConfig] = [
-    ModelConfig(id="amazon/nova-premier-v1", lab="amazon", reasoning="minimal"),
-    ModelConfig(id="baidu/ernie-4.5-vl-424b-a47b", lab="baidu", reasoning="minimal"),
-    ModelConfig(id="minimax/minimax-m3", lab="minimax", reasoning="minimal"),
-    ModelConfig(id="meta-llama/llama-4-maverick", lab="meta-llama", reasoning="minimal"),
-    ModelConfig(id="stepfun/step-3.7-flash", lab="stepfun", reasoning="minimal"),
-    ModelConfig(id="qwen/qwen3-vl-235b-a22b-thinking", lab="qwen", reasoning="minimal"),
+    ModelConfig(id="anthropic/claude-fable-5.1", lab="anthropic", reasoning="omit"),
 ]
 
 MIME = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}

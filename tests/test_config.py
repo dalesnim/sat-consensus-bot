@@ -37,9 +37,9 @@ models:
 """
 
 
-def test_load_roster_returns_seven_models() -> None:
+def test_load_roster_returns_eight_models() -> None:
     roster = load_roster(MODELS_YAML)
-    assert len(roster.models) == 7
+    assert len(roster.models) == 8
 
 
 def test_load_roster_ids_in_order() -> None:
@@ -53,6 +53,7 @@ def test_load_roster_ids_in_order() -> None:
         "anthropic/claude-sonnet-5",
         "qwen/qwen3.8-max-0902",
         "google/gemini-3.7-flash",
+        "anthropic/claude-fable-5.1",
     ]
 
 
