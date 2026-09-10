@@ -1,0 +1,135 @@
+import io
+
+import pytest
+from PIL import Image, ImageDraw
+
+from bot.db.questions import find_cached_question, insert_question
+from bot.images.extract import compute_phash
+from bot.orchestrator.contract import ConsensusResult, ModelVote, Position
+from tests.test_images import _png_bytes, _sharp_page_bytes
+from tests.test_pipeline import MODEL_IDS
+
+
+def _consensus(*, tier: str = "strong", winning_letter: str | None = "B") -> ConsensusResult:
+    return ConsensusResult(
+        tier=tier,
+        winning_letter=winning_letter,
+        positions=[Position(letter="B", votes=6, labs=4, reasoning=["Because."])]
+        if winning_letter
+        else [],
+        model_votes=[ModelVote(model_id=m, lab="anthropic", letter=winning_letter) for m in MODEL_IDS],
+        total_valid=6 if winning_letter else 0,
+        abstentions=0,
+        labs_in_majority=4,
+        degraded=False,
+        transcription_divergence=False,
+        question_type=None,
+    )
+
+
+def _template_bytes(text: str, width: int = 400, height: int = 300) -> bytes:
+    image = Image.new("L", (width, height), color=255)
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((10, 10, width - 10, 120), outline=0)
+    draw.text((20, 30), text, fill=0)
+    for i, letter in enumerate("ABCD"):
+        draw.text((20, 150 + i * 30), f"{letter}. choice text", fill=0)
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+class TestComputePhash:
+    def test_deterministic_on_same_bytes(self) -> None:
+        data = _sharp_page_bytes()
+        assert compute_phash(data) == compute_phash(data)
+
+    def test_returns_64_char_lowercase_hex_string(self) -> None:
+        digest = compute_phash(_png_bytes())
+        assert len(digest) == 64
+        assert digest == digest.lower()
+        int(digest, 16)
+
+    def test_png_and_jpeg_of_same_content_match(self) -> None:
+        image = Image.new("RGB", (400, 300), color=(250, 250, 250))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((10, 10, 390, 120), outline=(0, 0, 0))
+        draw.text((20, 30), "Same rendered page", fill=(0, 0, 0))
+
+        png_buffer = io.BytesIO()
+        image.save(png_buffer, format="PNG")
+        jpeg_buffer = io.BytesIO()
+        image.save(jpeg_buffer, format="JPEG", quality=95)
+
+        assert compute_phash(png_buffer.getvalue()) == compute_phash(jpeg_buffer.getvalue())
+
+    def test_different_text_yields_different_hash(self) -> None:
+        one = _template_bytes("The passage discusses a historical event that changed policy.")
+        two = _template_bytes("A completely different topic about marine biology research.")
+        assert compute_phash(one) != compute_phash(two)
+
+    def test_undecodable_bytes_raises_value_error(self) -> None:
+        with pytest.raises(ValueError):
+            compute_phash(b"not an image")
+
+
+class TestFindCachedQuestion:
+    async def test_returns_none_when_no_row_shares_phash(self, db) -> None:
+        assert await find_cached_question(db, "deadbeef" * 8) is None
+
+    async def test_returns_most_recent_matching_row(self, db) -> None:
+        phash = "a" * 64
+        consensus = _consensus()
+        first_id = await insert_question(
+            db,
+            phash=phash,
+            image_sha256="sha1",
+            image_file_id="f1",
+            user_id=1,
+            consensus=consensus,
+        )
+        second_id = await insert_question(
+            db,
+            phash=phash,
+            image_sha256="sha2",
+            image_file_id="f2",
+            user_id=1,
+            consensus=consensus,
+        )
+        await db.commit()
+
+        result = await find_cached_question(db, phash)
+        assert result is not None
+        assert result.id == second_id
+        assert result.id != first_id
+
+    async def test_ignores_rows_with_served_from_cache(self, db) -> None:
+        phash = "b" * 64
+        consensus = _consensus()
+        await insert_question(
+            db,
+            phash=phash,
+            image_sha256="sha1",
+            image_file_id="f1",
+            user_id=1,
+            consensus=consensus,
+            served_from_cache=True,
+        )
+        await db.commit()
+
+        assert await find_cached_question(db, phash) is None
+
+    async def test_ignores_insufficient_rows(self, db) -> None:
+        phash = "c" * 64
+        consensus = _consensus(tier="insufficient", winning_letter=None)
+        await insert_question(
+            db,
+            phash=phash,
+            image_sha256="sha1",
+            image_file_id="f1",
+            user_id=1,
+            consensus=consensus,
+        )
+        await db.commit()
+
+        assert await find_cached_question(db, phash) is None
