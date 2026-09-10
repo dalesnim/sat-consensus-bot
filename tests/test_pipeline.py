@@ -8,6 +8,7 @@ import pytest
 
 from bot.config import ModelConfig, RosterConfig, Settings, load_settings
 from bot.db.spend import day_totals
+from bot.formatting import reply as reply_module
 from bot.pipeline import Deps, answer_question
 from tests.fixtures.verdicts import (
     abstaining_verdict_json,
@@ -469,7 +470,15 @@ async def test_above_cap_fires_only_reduced_set_and_discloses_it(
     assert "openai/gpt-6-astra" not in request_log
     assert len(request_log) == 4
     text = result.as_kwargs()["text"]
-    assert "reduced 4-model set" in text
+    assert "smaller, cheaper model set" in text
+
+
+def test_reduced_set_disclosure_states_no_model_count() -> None:
+    """The line must not hardcode a roster size — models.yaml's reduced set has
+    already changed once (6-model roster -> 7), and a stale count in the reply
+    would tell the user something false about how their answer was produced.
+    The tally footer already reports how many models actually voted."""
+    assert not any(char.isdigit() for char in reply_module._REDUCED_SET_LINE)
 
 
 async def test_exhausted_cap_makes_no_request_and_states_budget_exhausted(

@@ -11,7 +11,9 @@ from bot.orchestrator.contract import (
 _REASONING_CAP = 4
 _TEACHER_LINE = "The models don't agree here — worth asking a teacher about."
 _NO_ANSWER = "I couldn't generate an answer for that."
-_REDUCED_SET_LINE = "Today's budget cap was reached, so a reduced 4-model set answered this one."
+_REDUCED_SET_LINE = (
+    "Today's budget cap was reached, so a smaller, cheaper model set answered this one."
+)
 _BUDGET_EXHAUSTED_TEXT = (
     "Today's question budget is used up. It resets at midnight UTC — try again then."
 )
