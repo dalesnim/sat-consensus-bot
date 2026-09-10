@@ -13,12 +13,12 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CFG-02**: Bot fetches `GET /api/v1/models` from OpenRouter at boot and confirms every configured model ID exists, failing loudly and naming the offending ID
 - [ ] **CFG-03**: Bot confirms at boot that every configured model advertises image input support, failing loudly and naming the offending ID
 - [ ] **CFG-04**: Bot enforces lab diversity at boot — the round must contain at least 4 distinct labs — and refuses to start if violated
-- [ ] **CFG-05**: Bot reads all secrets from environment variables only; `.env.example` is shipped and `.env` is never committed
+- [x] **CFG-05**: Bot reads all secrets from environment variables only; `.env.example` is shipped and `.env` is never committed
 - [ ] **CFG-06**: Bot runs under Docker Compose on a single VPS with a persistent SQLite volume
 
 ### Ingestion
 
-- [ ] **ING-01**: User can send a photo of one SAT verbal question and receive a consensus reply
+- [x] **ING-01**: User can send a photo of one SAT verbal question and receive a consensus reply
 - [ ] **ING-02**: Bot extracts the largest available `PhotoSize` when the image arrives as a photo
 - [ ] **ING-03**: Bot extracts raw bytes when the image arrives as a document
 - [ ] **ING-04**: Bot tells users to prefer document uploads over photos, because Telegram compression degrades OCR
@@ -30,20 +30,20 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Inference
 
 - [ ] **INF-01**: All six configured models fire in parallel on every question — one round, no escalation cascade
-- [ ] **INF-02**: Every model receives a byte-identical prompt and the identical image
-- [ ] **INF-03**: No model receives any other model's output at any point
-- [ ] **INF-04**: The shared prompt requires verbatim transcription of the passage and all four choices before any reasoning
-- [ ] **INF-05**: The shared prompt requires an explicit verdict for every one of the four choices, forbidding answer selection without eliminating the other three
-- [ ] **INF-06**: The shared prompt requires restating exact values read off tables or graphs for `command_of_evidence_quantitative` questions
-- [ ] **INF-07**: The shared prompt requires naming the grammatical relationship between clauses for `transitions` and `boundaries` questions
-- [ ] **INF-08**: The shared prompt requires answers supported by the text only, with no outside knowledge, and JSON output only
+- [x] **INF-02**: Every model receives a byte-identical prompt and the identical image
+- [x] **INF-03**: No model receives any other model's output at any point
+- [x] **INF-04**: The shared prompt requires verbatim transcription of the passage and all four choices before any reasoning
+- [x] **INF-05**: The shared prompt requires an explicit verdict for every one of the four choices, forbidding answer selection without eliminating the other three
+- [x] **INF-06**: The shared prompt requires restating exact values read off tables or graphs for `command_of_evidence_quantitative` questions
+- [x] **INF-07**: The shared prompt requires naming the grammatical relationship between clauses for `transitions` and `boundaries` questions
+- [x] **INF-08**: The shared prompt requires answers supported by the text only, with no outside knowledge, and JSON output only
 - [ ] **INF-09**: `reasoning.effort` is forced to none/minimal on every model call, so the 30 second budget holds
 - [ ] **INF-10**: Each model call has its own timeout; a single slow or failed model cannot take down the round
-- [ ] **INF-11**: Each model response is validated against the strict JSON contract with pydantic v2
+- [x] **INF-11**: Each model response is validated against the strict JSON contract with pydantic v2
 - [ ] **INF-12**: A parse failure triggers exactly one repair retry scoped to syntax extraction only, so the repair cannot change the model's answer
 - [ ] **INF-13**: A model that still fails after the repair retry is recorded as abstaining for that question
 - [ ] **INF-14**: Two or more abstentions in a round visibly degrades the confidence reported to the user
-- [ ] **INF-15**: A question is classified into one of the eleven College Board question types
+- [x] **INF-15**: A question is classified into one of the eleven College Board question types
 
 ### Consensus Reporting
 
@@ -52,8 +52,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CON-03**: 6/6 or 5/1 reports as strong agreement with merged reasoning
 - [ ] **CON-04**: 4/2 reports as majority and contested, showing both sides' elimination reasoning
 - [ ] **CON-05**: 3/3 or worse reports as unresolved, showing every distinct position and advising the user to ask a teacher
-- [ ] **CON-06**: Reasoning appears first in the reply; the consensus letter appears last inside a MarkdownV2 spoiler
-- [ ] **CON-07**: Bot never asserts a correct answer — replies state only what the models chose
+- [x] **CON-06**: Reasoning appears first in the reply; the consensus letter appears last inside a MarkdownV2 spoiler
+- [x] **CON-07**: Bot never asserts a correct answer — replies state only what the models chose
 - [ ] **CON-08**: All model-generated text is escaped for MarkdownV2 so a formatting character cannot cause the reply to fail to send
 - [ ] **CON-09**: Replies exceeding Telegram's message length limit are paginated rather than truncated or dropped
 
@@ -134,9 +134,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CFG-02 | Phase 1 | Pending |
 | CFG-03 | Phase 1 | Pending |
 | CFG-04 | Phase 1 | Pending |
-| CFG-05 | Phase 1 | Pending |
+| CFG-05 | Phase 1 | Complete |
 | CFG-06 | Phase 1 | Pending |
-| ING-01 | Phase 1 | Pending |
+| ING-01 | Phase 1 | Complete |
 | ING-02 | Phase 1 | Pending |
 | ING-03 | Phase 1 | Pending |
 | ING-04 | Phase 1 | Pending |
@@ -145,27 +145,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ING-07 | Phase 1 | Pending |
 | ING-08 | Phase 3 | Pending |
 | INF-01 | Phase 1 | Pending |
-| INF-02 | Phase 1 | Pending |
-| INF-03 | Phase 1 | Pending |
-| INF-04 | Phase 1 | Pending |
-| INF-05 | Phase 1 | Pending |
-| INF-06 | Phase 1 | Pending |
-| INF-07 | Phase 1 | Pending |
-| INF-08 | Phase 1 | Pending |
+| INF-02 | Phase 1 | Complete |
+| INF-03 | Phase 1 | Complete |
+| INF-04 | Phase 1 | Complete |
+| INF-05 | Phase 1 | Complete |
+| INF-06 | Phase 1 | Complete |
+| INF-07 | Phase 1 | Complete |
+| INF-08 | Phase 1 | Complete |
 | INF-09 | Phase 1 | Pending |
 | INF-10 | Phase 1 | Pending |
-| INF-11 | Phase 1 | Pending |
+| INF-11 | Phase 1 | Complete |
 | INF-12 | Phase 1 | Pending |
 | INF-13 | Phase 1 | Pending |
 | INF-14 | Phase 1 | Pending |
-| INF-15 | Phase 1 | Pending |
+| INF-15 | Phase 1 | Complete |
 | CON-01 | Phase 1 | Pending |
 | CON-02 | Phase 1 | Pending |
 | CON-03 | Phase 1 | Pending |
 | CON-04 | Phase 1 | Pending |
 | CON-05 | Phase 1 | Pending |
-| CON-06 | Phase 1 | Pending |
-| CON-07 | Phase 1 | Pending |
+| CON-06 | Phase 1 | Complete |
+| CON-07 | Phase 1 | Complete |
 | CON-08 | Phase 3 | Pending |
 | CON-09 | Phase 3 | Pending |
 | UX-01 | Phase 3 | Pending |
@@ -187,6 +187,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACC-06 | Phase 2 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 55 total
 - Mapped to phases: 55
 - Unmapped: 0 ✓
