@@ -8,6 +8,7 @@ from aiogram import Bot, Dispatcher
 
 from bot.config import Settings, load_roster, load_settings
 from bot.handlers.ingest import router
+from bot.pipeline import Deps
 from bot.validation.boot import BootValidationError, validate_roster
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -40,13 +41,14 @@ async def main() -> None:
             logger.critical("roster validation failed: %s", exc)
             raise SystemExit(1) from exc
 
-    if validate_only:
-        labs = {m.lab for m in roster.models}
-        print(f"roster ok: {len(roster.models)} models, {len(labs)} labs")
-        return
+        if validate_only:
+            labs = {m.lab for m in roster.models}
+            print(f"roster ok: {len(roster.models)} models, {len(labs)} labs")
+            return
 
-    token = settings.telegram_bot_token.get_secret_value()
-    bot = Bot(token=token)
-    dispatcher = Dispatcher()
-    dispatcher.include_router(router)
-    await dispatcher.start_polling(bot)
+        deps = Deps(settings=settings, roster=roster, http=client)
+        token = settings.telegram_bot_token.get_secret_value()
+        bot = Bot(token=token)
+        dispatcher = Dispatcher(deps=deps)
+        dispatcher.include_router(router)
+        await dispatcher.start_polling(bot)
