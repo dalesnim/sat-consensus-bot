@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-04-PLAN.md
-last_updated: "2026-09-10T20:48:22.586Z"
+stopped_at: Blocked on 02-05 Task 3 human-verify checkpoint (live phase verification)
+last_updated: "2026-09-10T20:58:10.251Z"
 last_activity: 2026-09-10
 progress:
   total_phases: 3
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-09-10)
 ## Current Position
 
 Phase: 02 (persistence-caching-cost-control) — EXECUTING
-Plan: 3 of 5
-Status: Ready to execute
+Plan: 5 of 5 (Tasks 1-2 of 3 complete; Task 3 blocked on human-verify checkpoint)
+Status: Blocked — awaiting owner's live ten-step verification (see 02-05-SUMMARY.md)
 Last activity: 2026-09-10
 
 Progress: [█████████░] 92%
@@ -88,6 +88,8 @@ Recent decisions affecting current work:
 - [Phase 02-02]: cache-hit insert_question wrapped in its own try/except so a DB write failure on a free cache hit degrades gracefully instead of crashing the response
 - [Phase 02-04]: Applied the spend-cap mechanism to the actual live 7-model roster (grok-4.6, gemini-3.1-pro-preview, gpt-6-astra, claude-opus-5, claude-sonnet-5, qwen3.8-max-0902, gemini-3.7-flash) rather than the plan's stale six-model assumption; est_cost_usd computed locally from data/bakeoff.json, zero live OpenRouter calls, no model id changed
 - [Phase 02-04]: daily_spend_cap_usd defaulted to 1000.0, not the plan's literal 5.0, honoring the owner's 'no cap chosen yet' decision while keeping the reservation/reconcile mechanism fully built and tested
+- [Phase 02-05]: cache_hit_rate_today returned pre-scaled to 0-100 (not a 0-1 fraction) so the /cost handler renders it directly as a percentage; owner.py's _send widened from str-only to str | Text so one send helper serves both plain-string replies and the new Bold-header /cost reply
+- [Phase 02-05]: Task 3 (live ten-step verification) intentionally NOT attempted by the executor — requires real Telegram/OpenRouter traffic which the money guard and lack of Telegram access both forbid; ACC-06 and Phase 2 completion remain unmarked pending owner approval
 
 ### Pending Todos
 
@@ -98,6 +100,7 @@ None yet.
 - Phase 1: 30s latency budget margin is thin per research (worked example ~27s); the empirical spike (fire all six models once, log real completion tokens and wall-clock time) must run before `max_tokens` is finalized or the budget is trusted.
 - Phase 1: Exact JSON shape of OpenRouter's `usage.cost` field and `architecture.input_modalities` should be spot-checked against a live response, not assumed from docs — needed before Phase 2 cost accounting can trust it.
 - Phase 1: No credentials provisioned yet (no VPS, no OpenRouter key, no BotFather token) — greenfield start, must be in hand before Phase 1 execution.
+- Phase 02 Plan 05 Task 3 (live ten-step verification of the whole phase) requires OWNER_ID set to owner's real Telegram id and real Telegram/OpenRouter traffic; cannot be automated or simulated by the executor. Blocked pending owner walkthrough per 02-05-SUMMARY.md.
 
 ## Deferred Items
 
@@ -111,6 +114,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-10T20:48:22.582Z
-Stopped at: Completed 02-04-PLAN.md
-Resume file: None
+Last session: 2026-09-10T20:58:10.247Z
+Stopped at: Blocked on 02-05 Task 3 human-verify checkpoint (live phase verification)
+Resume file: .planning/phases/02-persistence-caching-cost-control/02-05-SUMMARY.md

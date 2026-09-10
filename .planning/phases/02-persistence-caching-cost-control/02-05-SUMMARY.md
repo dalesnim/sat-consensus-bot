@@ -134,5 +134,7 @@ None beyond the expected checkpoint block.
 *Phase: 02-persistence-caching-cost-control*
 *Status: Tasks 1-2 complete, 2026-09-10. Task 3 outstanding — blocked on human checkpoint.*
 
-## Self-Check: PENDING
-See Self-Check section below, appended after file-existence and commit verification.
+## Self-Check: PASSED
+All 5 created/modified files verified present on disk (`src/bot/cost/report.py`,
+`tests/test_cost_report.py`, `src/bot/handlers/owner.py`, `README.md`, this SUMMARY.md).
+All 5 commit hashes (d804697, 922aa5f, 860225d, 6b5787c, f5d371c) verified present in `git log`.
