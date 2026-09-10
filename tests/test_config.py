@@ -95,8 +95,8 @@ def test_load_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "x")
     monkeypatch.setenv("OPENROUTER_API_KEY", "y")
     settings = load_settings()
-    assert settings.per_model_timeout_seconds == 22
-    assert settings.round_timeout_seconds == 26
+    assert settings.per_model_timeout_seconds == 42
+    assert settings.round_timeout_seconds == 45
 
 
 def test_load_settings_reads_env_override(monkeypatch: pytest.MonkeyPatch) -> None:

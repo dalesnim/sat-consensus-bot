@@ -182,11 +182,11 @@ async def test_strong_consensus_six_agree(settings: Settings) -> None:
             _deps(settings, client), _sharp_page_bytes(), source_is_photo=True
         )
 
-    kwargs = result.as_kwargs()
-    spoilers = [entity for entity in kwargs["entities"] if entity.type == "spoiler"]
-    assert len(spoilers) == 1
-    letter = kwargs["text"][spoilers[0].offset : spoilers[0].offset + spoilers[0].length]
-    assert letter == "C"
+    text = result.as_kwargs()["text"]
+    assert "Answer: C" in text
+    assert "(6/6 agree" in text
+    for model_id in MODEL_IDS:
+        assert f"• {model_id}: C" in text
 
 
 async def test_degraded_header_names_abstention_count(settings: Settings) -> None:
@@ -198,7 +198,9 @@ async def test_degraded_header_names_abstention_count(settings: Settings) -> Non
             _deps(settings, client), _sharp_page_bytes(), source_is_photo=True
         )
 
-    assert "2 models did not answer" in result.as_kwargs()["text"]
+    text = result.as_kwargs()["text"]
+    assert "(4/6 agree" in text
+    assert text.count("I couldn't generate an answer for that.") == 2
 
 
 async def test_never_raises_on_undecodable_bytes(settings: Settings) -> None:

@@ -46,14 +46,14 @@ async def test_photo_produces_consensus_reply() -> None:
     entities = kwargs["entities"]
 
     assert "agree" in text or "contested" in text or "unresolved" in text
+    assert not [entity for entity in entities if entity.type == "spoiler"]
 
-    spoilers = [entity for entity in entities if entity.type == "spoiler"]
-    assert len(spoilers) == 1
+    answer_lines = [line for line in text.splitlines() if line.startswith("Answer: ")]
+    assert len(answer_lines) == 1
+    assert answer_lines[0].removeprefix("Answer: ") in ("A", "B", "C", "D", "unresolved")
 
-    spoiler = spoilers[0]
-    letter = text[spoiler.offset : spoiler.offset + spoiler.length]
-    assert letter in ("A", "B", "C", "D")
-    assert spoiler.offset + spoiler.length == len(text)
+    breakdown = [line for line in text.splitlines() if line.startswith("• ")]
+    assert len(breakdown) == 6
 
     lowered = text.lower()
     assert "correct answer" not in lowered
@@ -81,4 +81,7 @@ async def test_six_model_round_produces_exact_agreement_header() -> None:
         result = await answer_question(deps, _sharp_page_bytes(), source_is_photo=True)
 
     text = result.as_kwargs()["text"]
-    assert text.startswith("6/6 agree · 4 labs")
+    assert text.startswith("📋 ")
+    assert "Answer: " in text
+    assert "100% agreement" in text
+    assert "(6/6 agree · 4 labs)" in text

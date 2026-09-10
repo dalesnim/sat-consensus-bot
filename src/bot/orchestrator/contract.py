@@ -106,10 +106,17 @@ class Position(BaseModel):
     reasoning: list[str]
 
 
+class ModelVote(BaseModel):
+    model_id: str
+    lab: str
+    letter: Literal["A", "B", "C", "D"] | None
+
+
 class ConsensusResult(BaseModel):
     tier: ConsensusTier
     winning_letter: Literal["A", "B", "C", "D"] | None
     positions: list[Position]
+    model_votes: list[ModelVote] = []
     total_valid: int
     abstentions: int
     labs_in_majority: int

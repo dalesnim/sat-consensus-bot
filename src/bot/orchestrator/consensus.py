@@ -6,6 +6,7 @@ from bot.orchestrator.contract import (
     AttemptResult,
     ConsensusResult,
     ConsensusTier,
+    ModelVote,
     Position,
     QuestionType,
 )
@@ -82,6 +83,16 @@ def _modal_question_type(ok_results: Sequence[AttemptResult]) -> QuestionType | 
     return ranked[0][0]
 
 
+def _model_votes(results: Sequence[AttemptResult]) -> list[ModelVote]:
+    votes: list[ModelVote] = []
+    for result in results:
+        letter = None
+        if result.status == "ok" and result.verdict is not None:
+            letter = result.verdict.answer
+        votes.append(ModelVote(model_id=result.model_id, lab=result.lab, letter=letter))
+    return votes
+
+
 def tally(
     results: Sequence[AttemptResult], *, min_valid: int = MIN_VALID_RESPONSES_DEFAULT
 ) -> ConsensusResult:
@@ -96,6 +107,7 @@ def tally(
             tier="insufficient",
             winning_letter=None,
             positions=[],
+            model_votes=_model_votes(results),
             total_valid=total_valid,
             abstentions=abstentions,
             labs_in_majority=0,
@@ -159,6 +171,7 @@ def tally(
         tier=tier,
         winning_letter=winning_letter,
         positions=positions,
+        model_votes=_model_votes(results),
         total_valid=total_valid,
         abstentions=abstentions,
         labs_in_majority=labs_in_majority,
