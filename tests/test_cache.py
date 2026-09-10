@@ -17,7 +17,9 @@ def _consensus(*, tier: str = "strong", winning_letter: str | None = "B") -> Con
         positions=[Position(letter="B", votes=6, labs=4, reasoning=["Because."])]
         if winning_letter
         else [],
-        model_votes=[ModelVote(model_id=m, lab="anthropic", letter=winning_letter) for m in MODEL_IDS],
+        model_votes=[
+            ModelVote(model_id=m, lab="anthropic", letter=winning_letter) for m in MODEL_IDS
+        ],
         total_valid=6 if winning_letter else 0,
         abstentions=0,
         labs_in_majority=4,

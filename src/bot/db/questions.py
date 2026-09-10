@@ -6,6 +6,12 @@ from pydantic import BaseModel
 from bot.orchestrator.contract import ConsensusResult
 
 
+class CachedQuestion(BaseModel):
+    id: int
+    consensus_json: str
+    image_sha256: str
+
+
 class QuestionRow(BaseModel):
     id: int
     phash: str
@@ -69,3 +75,18 @@ async def insert_question(
     )
     assert cursor.lastrowid is not None
     return cursor.lastrowid
+
+
+async def find_cached_question(conn: aiosqlite.Connection, phash: str) -> CachedQuestion | None:
+    cursor = await conn.execute(
+        """
+        SELECT id, consensus_json, image_sha256 FROM questions
+        WHERE phash = ? AND served_from_cache = 0 AND consensus_state != 'insufficient'
+        ORDER BY id DESC LIMIT 1
+        """,
+        (phash,),
+    )
+    row = await cursor.fetchone()
+    if row is None:
+        return None
+    return CachedQuestion(id=row[0], consensus_json=row[1], image_sha256=row[2])

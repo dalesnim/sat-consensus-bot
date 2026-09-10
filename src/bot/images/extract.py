@@ -4,10 +4,13 @@ from collections.abc import Sequence
 from enum import StrEnum
 from typing import Protocol
 
+import imagehash
 from PIL import Image, ImageFilter, ImageStat, UnidentifiedImageError
 from pydantic import BaseModel
 
 Image.MAX_IMAGE_PIXELS = 50_000_000
+
+PHASH_SIZE = 16
 
 _MIME_BY_FORMAT = {
     "PNG": "image/png",
@@ -59,6 +62,16 @@ def to_data_url(data: bytes) -> str:
 
     encoded = base64.b64encode(data).decode("ascii")
     return f"data:{mime};base64,{encoded}"
+
+
+def compute_phash(data: bytes) -> str:
+    try:
+        with Image.open(io.BytesIO(data)) as image:
+            grayscale = image.convert("L")
+    except UnidentifiedImageError as exc:
+        raise ValueError(f"could not identify image format: {exc}") from exc
+
+    return str(imagehash.phash(grayscale, hash_size=PHASH_SIZE))
 
 
 class QualityGrade(StrEnum):
