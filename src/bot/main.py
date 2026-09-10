@@ -10,6 +10,7 @@ from bot.config import Settings, load_roster, load_settings
 from bot.db.connection import open_connection
 from bot.db.users import seed_allowlist
 from bot.handlers.ingest import router
+from bot.handlers.owner import router as owner_router
 from bot.middleware.access import AccessMiddleware
 from bot.pipeline import Deps
 from bot.validation.boot import BootValidationError, validate_roster
@@ -57,6 +58,7 @@ async def main() -> None:
             bot = Bot(token=token)
             dispatcher = Dispatcher(deps=deps)
             dispatcher.message.outer_middleware(AccessMiddleware())
+            dispatcher.include_router(owner_router)
             dispatcher.include_router(router)
             await dispatcher.start_polling(bot)
         finally:
