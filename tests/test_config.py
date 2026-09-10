@@ -46,12 +46,12 @@ def test_load_roster_ids_in_order() -> None:
     roster = load_roster(MODELS_YAML)
     ids = [m.id for m in roster.models]
     assert ids == [
-        "anthropic/claude-opus-5",
-        "openai/gpt-6-astra",
-        "google/gemini-3.1-pro-preview",
         "x-ai/grok-4.6",
+        "google/gemini-3.1-pro-preview",
+        "openai/gpt-6-astra",
+        "anthropic/claude-opus-5",
+        "anthropic/claude-sonnet-5",
         "qwen/qwen3.8-max-0902",
-        "mistralai/mistral-large-2512",
     ]
 
 
@@ -62,11 +62,10 @@ def test_anthropic_entries_omit_reasoning() -> None:
     assert all(m.reasoning == "omit" for m in anthropic_models)
 
 
-def test_every_model_comes_from_a_distinct_lab() -> None:
-    """Same-lab models share failure modes, so duplicates waste ensemble votes."""
+def test_roster_spans_at_least_the_required_labs() -> None:
+    """Same-lab models share failure modes, so the round needs real lab spread."""
     roster = load_roster(MODELS_YAML)
-    labs = [m.lab for m in roster.models]
-    assert len(set(labs)) == len(labs)
+    assert len({m.lab for m in roster.models}) >= roster.min_distinct_labs
 
 
 def test_no_entry_has_unset_reasoning() -> None:

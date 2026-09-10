@@ -19,17 +19,12 @@ from bot.orchestrator import client as C  # noqa: E402
 from bot.orchestrator.contract import Verdict  # noqa: E402
 
 CANDIDATES: list[ModelConfig] = [
-    ModelConfig(id="anthropic/claude-opus-5", lab="anthropic", reasoning="omit"),
-    ModelConfig(id="anthropic/claude-sonnet-5", lab="anthropic", reasoning="omit"),
-    ModelConfig(id="openai/gpt-6-astra", lab="openai", reasoning="minimal"),
-    ModelConfig(id="openai/gpt-5.6-sol", lab="openai", reasoning="none"),
-    ModelConfig(id="google/gemini-3.7-flash", lab="google", reasoning="minimal"),
-    ModelConfig(id="google/gemini-3.1-pro-preview", lab="google", reasoning="minimal"),
-    ModelConfig(id="mistralai/mistral-large-2512", lab="mistralai", reasoning="minimal"),
-    ModelConfig(id="x-ai/grok-4.6", lab="x-ai", reasoning="minimal"),
-    ModelConfig(id="qwen/qwen3.8-max-0902", lab="qwen", reasoning="minimal"),
-    ModelConfig(id="moonshotai/kimi-k2.6", lab="moonshotai", reasoning="minimal"),
-    ModelConfig(id="z-ai/glm-5v-turbo", lab="z-ai", reasoning="minimal"),
+    ModelConfig(id="amazon/nova-premier-v1", lab="amazon", reasoning="minimal"),
+    ModelConfig(id="baidu/ernie-4.5-vl-424b-a47b", lab="baidu", reasoning="minimal"),
+    ModelConfig(id="minimax/minimax-m3", lab="minimax", reasoning="minimal"),
+    ModelConfig(id="meta-llama/llama-4-maverick", lab="meta-llama", reasoning="minimal"),
+    ModelConfig(id="stepfun/step-3.7-flash", lab="stepfun", reasoning="minimal"),
+    ModelConfig(id="qwen/qwen3-vl-235b-a22b-thinking", lab="qwen", reasoning="minimal"),
 ]
 
 MIME = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp"}
