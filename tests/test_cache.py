@@ -1,13 +1,31 @@
 import io
+import logging
 
+import aiosqlite
+import httpx
 import pytest
 from PIL import Image, ImageDraw
 
+from bot import pipeline as pipeline_module
+from bot.config import Settings, load_settings
 from bot.db.questions import find_cached_question, insert_question
 from bot.images.extract import compute_phash
 from bot.orchestrator.contract import ConsensusResult, ModelVote, Position
-from tests.test_images import _png_bytes, _sharp_page_bytes
-from tests.test_pipeline import MODEL_IDS
+from bot.pipeline import answer_question
+from tests.fixtures.verdicts import valid_verdict_json
+from tests.test_images import _blurred_page_bytes, _png_bytes, _sharp_page_bytes
+from tests.test_pipeline import MODEL_IDS, _deps, _transport
+
+
+@pytest.fixture
+def settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-telegram-token")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
+    monkeypatch.setenv("MIN_IMAGE_DIMENSION", "1000")
+    monkeypatch.setenv("BLUR_VARIANCE_WARN", "100.0")
+    monkeypatch.setenv("BLUR_VARIANCE_REJECT", "5.0")
+    monkeypatch.setenv("MIN_VALID_RESPONSES", "3")
+    return load_settings()
 
 
 def _consensus(*, tier: str = "strong", winning_letter: str | None = "B") -> ConsensusResult:
@@ -135,3 +153,141 @@ class TestFindCachedQuestion:
         await db.commit()
 
         assert await find_cached_question(db, phash) is None
+
+
+async def _question_rows(db: aiosqlite.Connection) -> list[aiosqlite.Row]:
+    cursor = await db.execute(
+        "SELECT id, served_from_cache, source_question_id FROM questions ORDER BY id"
+    )
+    return await cursor.fetchall()
+
+
+async def _attempt_count(db: aiosqlite.Connection) -> int:
+    cursor = await db.execute("SELECT COUNT(*) FROM attempts")
+    row = await cursor.fetchone()
+    return row[0]
+
+
+class TestPipelineCacheBranch:
+    async def test_second_identical_call_performs_zero_requests_and_matches_first_reply(
+        self, settings: Settings, db: aiosqlite.Connection
+    ) -> None:
+        request_log: list[str] = []
+        responses = {model_id: valid_verdict_json("C") for model_id in MODEL_IDS}
+        image_bytes = _sharp_page_bytes()
+
+        async with httpx.AsyncClient(
+            transport=_transport(responses, request_log=request_log)
+        ) as client:
+            first = await answer_question(
+                _deps(settings, client, db),
+                image_bytes,
+                source_is_photo=True,
+                user_id=1,
+                image_file_id="file123",
+            )
+            assert len(request_log) == 6
+
+            second = await answer_question(
+                _deps(settings, client, db),
+                image_bytes,
+                source_is_photo=True,
+                user_id=2,
+                image_file_id="file456",
+            )
+
+        assert len(request_log) == 6
+        assert second.as_kwargs()["text"] == first.as_kwargs()["text"]
+
+        rows = await _question_rows(db)
+        assert len(rows) == 2
+        first_id, first_cache_flag, first_source = rows[0]
+        second_id, second_cache_flag, second_source = rows[1]
+        assert first_cache_flag == 0
+        assert second_cache_flag == 1
+        assert second_source == first_id
+
+        assert await _attempt_count(db) == 6
+
+    async def test_sha_mismatch_still_serves_cache_and_logs_warning(
+        self,
+        settings: Settings,
+        db: aiosqlite.Connection,
+        caplog: pytest.LogCaptureFixture,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        consensus = _consensus()
+        source_id = await insert_question(
+            db,
+            phash="fixedhash",
+            image_sha256="stale-sha",
+            image_file_id="f1",
+            user_id=1,
+            consensus=consensus,
+        )
+        await db.commit()
+
+        monkeypatch.setattr(pipeline_module, "compute_phash", lambda data: "fixedhash")
+
+        request_log: list[str] = []
+        async with httpx.AsyncClient(transport=_transport(request_log=request_log)) as client:
+            with caplog.at_level(logging.WARNING, logger="bot.pipeline"):
+                result = await answer_question(
+                    _deps(settings, client, db),
+                    _sharp_page_bytes(),
+                    source_is_photo=True,
+                    user_id=2,
+                    image_file_id="file789",
+                )
+
+        assert request_log == []
+        assert "Answer: B" in result.as_kwargs()["text"]
+
+        warnings = [r for r in caplog.records if r.levelno == logging.WARNING]
+        assert len(warnings) == 1
+        assert str(source_id) in warnings[0].getMessage()
+
+    async def test_quality_rejected_image_never_reaches_cache_lookup(
+        self, settings: Settings, db: aiosqlite.Connection
+    ) -> None:
+        request_log: list[str] = []
+        heavily_blurred = _blurred_page_bytes(radius=8)
+
+        async with httpx.AsyncClient(transport=_transport(request_log=request_log)) as client:
+            await answer_question(
+                _deps(settings, client, db),
+                heavily_blurred,
+                source_is_photo=True,
+                user_id=1,
+                image_file_id="file123",
+            )
+
+        assert request_log == []
+        assert await _question_rows(db) == []
+
+    async def test_cache_lookup_failure_falls_through_to_normal_round(
+        self,
+        settings: Settings,
+        db: aiosqlite.Connection,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        async def _raise(*args: object, **kwargs: object) -> None:
+            raise RuntimeError("db exploded")
+
+        monkeypatch.setattr(pipeline_module.questions_repo, "find_cached_question", _raise)
+
+        request_log: list[str] = []
+        responses = {model_id: valid_verdict_json("C") for model_id in MODEL_IDS}
+        async with httpx.AsyncClient(
+            transport=_transport(responses, request_log=request_log)
+        ) as client:
+            result = await answer_question(
+                _deps(settings, client, db),
+                _sharp_page_bytes(),
+                source_is_photo=True,
+                user_id=1,
+                image_file_id="file123",
+            )
+
+        assert len(request_log) == 6
+        assert "Answer: C" in result.as_kwargs()["text"]
