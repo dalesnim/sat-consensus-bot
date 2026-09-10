@@ -28,4 +28,3 @@ tiebreak_model:
   reasoning: omit
 tiebreakers:
   - [anthropic/claude-opus-5, openai/gpt-6-astra]
-  - [google/gemini-3.1-pro-preview, google/gemini-3.7-flash]
