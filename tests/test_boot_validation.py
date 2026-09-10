@@ -25,7 +25,9 @@ VALID_ROSTER = RosterConfig(
 )
 
 
-def _client_for(catalog: dict | None, *, status_code: int = 200, body: bytes | None = None) -> httpx.AsyncClient:
+def _client_for(
+    catalog: dict | None, *, status_code: int = 200, body: bytes | None = None
+) -> httpx.AsyncClient:
     def handler(request: httpx.Request) -> httpx.Response:
         if body is not None:
             return httpx.Response(status_code, content=body)
@@ -121,9 +123,8 @@ async def test_three_lab_roster_lists_labs_present() -> None:
 
 async def test_two_bad_ids_both_named_in_one_message() -> None:
     catalog = copy.deepcopy(FIXTURE)
-    catalog["data"] = [
-        e for e in catalog["data"] if e["id"] not in ("openai/gpt-6-astra", "google/gemini-3.7-flash")
-    ]
+    dropped_ids = ("openai/gpt-6-astra", "google/gemini-3.7-flash")
+    catalog["data"] = [e for e in catalog["data"] if e["id"] not in dropped_ids]
     async with _client_for(catalog) as client:
         with pytest.raises(BootValidationError) as exc_info:
             await validate_roster(
