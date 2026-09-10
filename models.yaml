@@ -4,24 +4,38 @@ models:
   - id: x-ai/grok-4.6
     lab: x-ai
     reasoning: minimal
+    est_cost_usd: 0.012
+    in_reduced_set: true
   - id: google/gemini-3.1-pro-preview
     lab: google
     reasoning: minimal
+    est_cost_usd: 0.012
+    in_reduced_set: true
   - id: openai/gpt-6-astra
     lab: openai
     reasoning: minimal
+    est_cost_usd: 0.118
+    in_reduced_set: false
   - id: anthropic/claude-opus-5
     lab: anthropic
     reasoning: omit
+    est_cost_usd: 0.060
+    in_reduced_set: false
   - id: anthropic/claude-sonnet-5
     lab: anthropic
     reasoning: omit
+    est_cost_usd: 0.024
+    in_reduced_set: true
   - id: qwen/qwen3.8-max-0902
     lab: qwen
     reasoning: minimal
+    est_cost_usd: 0.014
+    in_reduced_set: true
   - id: google/gemini-3.7-flash
     lab: google
     reasoning: minimal
+    est_cost_usd: 0.004
+    in_reduced_set: true
 tiebreak_model:
   id: anthropic/claude-fable-5.1
   lab: anthropic

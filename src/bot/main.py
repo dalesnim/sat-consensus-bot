@@ -31,16 +31,27 @@ async def main() -> None:
                 "MODELS_CONFIG_PATH", str(Settings.model_fields["models_config_path"].default)
             )
         )
+        min_valid_responses = int(
+            os.environ.get(
+                "MIN_VALID_RESPONSES", str(Settings.model_fields["min_valid_responses"].default)
+            )
+        )
     else:
         settings = load_settings()
         base_url = settings.openrouter_base_url
         models_config_path = settings.models_config_path
+        min_valid_responses = settings.min_valid_responses
 
     roster = load_roster(models_config_path)
 
     async with httpx.AsyncClient() as client:
         try:
-            await validate_roster(roster, base_url=base_url, client=client)
+            await validate_roster(
+                roster,
+                base_url=base_url,
+                client=client,
+                min_valid_responses=min_valid_responses,
+            )
         except BootValidationError as exc:
             logger.critical("roster validation failed: %s", exc)
             raise SystemExit(1) from exc

@@ -9,9 +9,40 @@ class BootValidationError(RuntimeError):
     pass
 
 
+def _local_roster_problems(roster: RosterConfig, *, min_valid_responses: int) -> list[str]:
+    problems: list[str] = []
+
+    bad_cost_ids = [m.id for m in roster.models if m.est_cost_usd <= 0]
+    if bad_cost_ids:
+        problems.append(f"missing a positive est_cost_usd: {', '.join(bad_cost_ids)}")
+
+    reduced_labs = {m.lab for m in roster.reduced_models}
+    if len(reduced_labs) < roster.min_distinct_labs:
+        problems.append(
+            f"reduced set spans only {len(reduced_labs)} distinct labs "
+            f"({', '.join(sorted(reduced_labs))}), minimum is {roster.min_distinct_labs}"
+        )
+
+    if len(roster.reduced_models) < min_valid_responses:
+        problems.append(
+            f"reduced set has only {len(roster.reduced_models)} members, "
+            f"minimum is {min_valid_responses}"
+        )
+
+    return problems
+
+
 async def validate_roster(
-    roster: RosterConfig, *, base_url: str, client: httpx.AsyncClient
+    roster: RosterConfig,
+    *,
+    base_url: str,
+    client: httpx.AsyncClient,
+    min_valid_responses: int = 3,
 ) -> None:
+    local_problems = _local_roster_problems(roster, min_valid_responses=min_valid_responses)
+    if local_problems:
+        raise BootValidationError("; ".join(local_problems))
+
     try:
         response = await client.get(f"{base_url}/models", timeout=15.0)
         response.raise_for_status()

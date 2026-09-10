@@ -13,12 +13,40 @@ FIXTURE = json.loads(FIXTURE_PATH.read_text())
 
 VALID_ROSTER = RosterConfig(
     models=[
-        ModelConfig(id="anthropic/claude-opus-5", lab="anthropic", reasoning="omit"),
-        ModelConfig(id="anthropic/claude-sonnet-5", lab="anthropic", reasoning="omit"),
-        ModelConfig(id="openai/gpt-6-astra", lab="openai", reasoning="none"),
-        ModelConfig(id="openai/gpt-5.6-sol", lab="openai", reasoning="none"),
-        ModelConfig(id="google/gemini-3.7-flash", lab="google", reasoning="none"),
-        ModelConfig(id="deepseek/deepseek-v4.1-flash", lab="deepseek", reasoning="minimal"),
+        ModelConfig(
+            id="anthropic/claude-opus-5", lab="anthropic", reasoning="omit", est_cost_usd=0.058
+        ),
+        ModelConfig(
+            id="anthropic/claude-sonnet-5",
+            lab="anthropic",
+            reasoning="omit",
+            est_cost_usd=0.019,
+            in_reduced_set=True,
+        ),
+        ModelConfig(
+            id="openai/gpt-6-astra", lab="openai", reasoning="none", est_cost_usd=0.024
+        ),
+        ModelConfig(
+            id="openai/gpt-5.6-sol",
+            lab="openai",
+            reasoning="none",
+            est_cost_usd=0.004,
+            in_reduced_set=True,
+        ),
+        ModelConfig(
+            id="google/gemini-3.7-flash",
+            lab="google",
+            reasoning="none",
+            est_cost_usd=0.004,
+            in_reduced_set=True,
+        ),
+        ModelConfig(
+            id="deepseek/deepseek-v4.1-flash",
+            lab="deepseek",
+            reasoning="minimal",
+            est_cost_usd=0.002,
+            in_reduced_set=True,
+        ),
     ],
     min_distinct_labs=4,
     max_tokens=2000,
@@ -98,14 +126,42 @@ async def test_missing_architecture_key_treated_as_no_image_support() -> None:
 
 
 async def test_three_lab_roster_lists_labs_present() -> None:
+    """Total roster spans only 3 labs, so its reduced subset can never reach 4."""
     three_lab_roster = RosterConfig(
         models=[
-            ModelConfig(id="anthropic/claude-opus-5", lab="anthropic", reasoning="omit"),
-            ModelConfig(id="anthropic/claude-sonnet-5", lab="anthropic", reasoning="omit"),
-            ModelConfig(id="openai/gpt-6-astra", lab="openai", reasoning="none"),
-            ModelConfig(id="openai/gpt-5.6-sol", lab="openai", reasoning="none"),
-            ModelConfig(id="google/gemini-3.7-flash", lab="google", reasoning="none"),
-            ModelConfig(id="deepseek/deepseek-v4.1-flash", lab="google", reasoning="minimal"),
+            ModelConfig(
+                id="anthropic/claude-opus-5", lab="anthropic", reasoning="omit", est_cost_usd=0.058
+            ),
+            ModelConfig(
+                id="anthropic/claude-sonnet-5",
+                lab="anthropic",
+                reasoning="omit",
+                est_cost_usd=0.019,
+                in_reduced_set=True,
+            ),
+            ModelConfig(
+                id="openai/gpt-6-astra", lab="openai", reasoning="none", est_cost_usd=0.024
+            ),
+            ModelConfig(
+                id="openai/gpt-5.6-sol",
+                lab="openai",
+                reasoning="none",
+                est_cost_usd=0.004,
+                in_reduced_set=True,
+            ),
+            ModelConfig(
+                id="google/gemini-3.7-flash",
+                lab="google",
+                reasoning="none",
+                est_cost_usd=0.004,
+                in_reduced_set=True,
+            ),
+            ModelConfig(
+                id="deepseek/deepseek-v4.1-flash",
+                lab="google",
+                reasoning="minimal",
+                est_cost_usd=0.002,
+            ),
         ],
         min_distinct_labs=4,
         max_tokens=2000,
