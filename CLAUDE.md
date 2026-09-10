@@ -1,4 +1,19 @@
 <!-- GSD:project-start source:PROJECT.md -->
+
+## ⚠ MONEY GUARD — read before running anything
+
+The owner's OpenRouter balance is ~$10.32 and each question costs ~$0.247.
+
+**Never run these unattended:** `scripts/model_bakeoff.py`,
+`scripts/latency_spike.py`, or any code path that calls `/chat/completions`.
+All tests must mock httpx at the transport layer.
+
+`python -m bot --validate-only` is free (public model catalog) and is fine.
+
+See `.planning/OVERNIGHT-HANDOFF.md` for full context, environment gotchas,
+and the decisions already locked in.
+
+
 ## Project
 
 **SAT Verbal Consensus Bot**
