@@ -11,6 +11,10 @@ from bot.orchestrator.contract import (
 _REASONING_CAP = 4
 _TEACHER_LINE = "The models don't agree here — worth asking a teacher about."
 _NO_ANSWER = "I couldn't generate an answer for that."
+_REDUCED_SET_LINE = "Today's budget cap was reached, so a reduced 4-model set answered this one."
+_BUDGET_EXHAUSTED_TEXT = (
+    "Today's question budget is used up. It resets at midnight UTC — try again then."
+)
 
 _QUESTION_TYPE_LABELS: dict[QuestionType, str] = {
     QuestionType.central_ideas_details: "central ideas and details",
@@ -94,7 +98,9 @@ def _position_block(position: Position) -> list[str | Bold]:
     ]
 
 
-def build_reply(consensus: ConsensusResult, *, source_is_photo: bool) -> Text:
+def build_reply(
+    consensus: ConsensusResult, *, source_is_photo: bool, reduced_model_set: bool = False
+) -> Text:
     if consensus.tier == "insufficient":
         return Text(
             _insufficient_apology(
@@ -143,8 +149,16 @@ def build_reply(consensus: ConsensusResult, *, source_is_photo: bool) -> Text:
     nodes.append("\n")
     nodes.append(Italic(_tally_footer(consensus)))
 
+    if reduced_model_set:
+        nodes.append("\n\n")
+        nodes.append(_REDUCED_SET_LINE)
+
     return Text(*nodes)
 
 
 def build_rejection(reason: RejectionReason, *, source_is_photo: bool) -> Text:
     return Text(_REJECTION_COPY[reason])
+
+
+def build_budget_exhausted() -> Text:
+    return Text(_BUDGET_EXHAUSTED_TEXT)

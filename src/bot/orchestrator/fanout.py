@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import time
+from collections.abc import Sequence
 
 import httpx
 from pydantic import SecretStr, ValidationError
@@ -114,6 +115,7 @@ async def run_round(
     api_key: SecretStr,
     per_model_timeout: float,
     round_timeout: float,
+    models: Sequence[ModelConfig] | None = None,
 ) -> list[AttemptResult]:
     """Fire every model in the roster concurrently, one round, no cascade.
 
@@ -121,6 +123,7 @@ async def run_round(
     bug inside call_one_model, never the primary error-handling mechanism —
     call_one_model is contractually forbidden from raising.
     """
+    active = roster.models if models is None else list(models)
     started = time.monotonic()
     tasks = [
         call_one_model(
@@ -132,7 +135,7 @@ async def run_round(
             max_tokens=roster.max_tokens,
             per_model_timeout=per_model_timeout,
         )
-        for model in roster.models
+        for model in active
     ]
 
     try:
@@ -143,17 +146,17 @@ async def run_round(
         elapsed = time.monotonic() - started
         logger.info(
             "round complete models=%d ok=0 abstain=%d elapsed_s=%.2f",
-            len(roster.models),
-            len(roster.models),
+            len(active),
+            len(active),
             elapsed,
         )
         return [
             AttemptResult.abstain(model.id, model.lab, "round_timeout", elapsed)
-            for model in roster.models
+            for model in active
         ]
 
     results: list[AttemptResult] = []
-    for model, raw in zip(roster.models, raw_results, strict=True):
+    for model, raw in zip(active, raw_results, strict=True):
         if isinstance(raw, AttemptResult):
             results.append(raw)
         else:
@@ -171,7 +174,7 @@ async def run_round(
     ok_count = sum(1 for r in results if r.status == "ok")
     logger.info(
         "round complete models=%d ok=%d abstain=%d elapsed_s=%.2f",
-        len(roster.models),
+        len(active),
         ok_count,
         len(results) - ok_count,
         time.monotonic() - started,

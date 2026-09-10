@@ -2,16 +2,19 @@ import hashlib
 import logging
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 import aiosqlite
 import httpx
 from aiogram.utils.formatting import Text
 
 from bot.config import RosterConfig, Settings
+from bot.cost import guard as cost_guard
 from bot.db import questions as questions_repo
+from bot.db import spend as spend_repo
 from bot.db.attempts import insert_attempts
 from bot.db.questions import insert_question
-from bot.formatting.reply import build_rejection, build_reply
+from bot.formatting.reply import build_budget_exhausted, build_rejection, build_reply
 from bot.images.extract import QualityGrade, compute_phash, grade_image, to_data_url
 from bot.orchestrator.consensus import tally
 from bot.orchestrator.contract import ConsensusResult, RejectionReason
@@ -124,6 +127,14 @@ async def answer_question(
         logger.warning("rejecting image undecodable at data-url stage: bytes=%d", len(image_bytes))
         return build_rejection(RejectionReason.unreadable_image, source_is_photo=source_is_photo)
 
+    day = datetime.now(UTC).strftime("%Y-%m-%d")
+    decision = await cost_guard.reserve_round(deps.db, deps.roster, deps.settings, day=day)
+    if decision.exhausted:
+        logger.error(
+            "daily spend cap exhausted: day=%s cap=%.4f", day, deps.settings.daily_spend_cap_usd
+        )
+        return build_budget_exhausted()
+
     started = time.monotonic()
     results = await run_round(
         deps.http,
@@ -133,7 +144,18 @@ async def answer_question(
         api_key=deps.settings.openrouter_api_key,
         per_model_timeout=deps.settings.per_model_timeout_seconds,
         round_timeout=deps.settings.round_timeout_seconds,
+        models=decision.models,
     )
+
+    cost_by_model = {m.id: m.est_cost_usd for m in decision.models}
+    actual = sum(
+        r.cost_usd if r.cost_usd is not None else cost_by_model.get(r.model_id, 0.0)
+        for r in results
+    )
+    try:
+        await spend_repo.reconcile(deps.db, day=day, estimate=decision.estimate_usd, actual=actual)
+    except Exception:
+        logger.error("failed to record round spend for day=%s", day, exc_info=True)
 
     voters = [r for r in results if r.status == "ok" and r.verdict is not None]
     if len(voters) >= deps.settings.min_valid_responses:
@@ -195,9 +217,12 @@ async def answer_question(
             image_file_id=image_file_id,
             user_id=user_id,
             consensus=consensus,
+            reduced_model_set=decision.reduced,
         )
         await insert_attempts(deps.db, question_id, results)
     except Exception:
         logger.error("failed to persist round for user_id=%s", user_id, exc_info=True)
 
-    return build_reply(consensus, source_is_photo=source_is_photo)
+    return build_reply(
+        consensus, source_is_photo=source_is_photo, reduced_model_set=decision.reduced
+    )
