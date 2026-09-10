@@ -1,11 +1,17 @@
 import asyncio
+from dataclasses import dataclass
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import aiosqlite
+import httpx
 import pytest
+from pydantic import SecretStr
 
-from bot.config import Settings, load_settings
+from bot.config import ModelConfig, RosterConfig, Settings, load_settings
 from bot.db.users import ensure_user, try_consume_daily
+from bot.middleware.access import AccessMiddleware
+from bot.pipeline import Deps
 
 
 @pytest.fixture
@@ -87,3 +93,160 @@ async def test_try_consume_daily_concurrent_admits_exactly_one(db: aiosqlite.Con
         *[try_consume_daily(db, 5, cap=1, day="2026-09-10") for _ in range(10)]
     )
     assert results.count(True) == 1
+
+
+ROSTER = RosterConfig(
+    models=[ModelConfig(id="anthropic/claude-opus-5", lab="anthropic", reasoning="omit")],
+    min_distinct_labs=1,
+    max_tokens=2000,
+)
+
+
+def _middleware_settings(*, owner_id: int | None = None, cap: int = 40) -> Settings:
+    return Settings(
+        telegram_bot_token=SecretStr("test-telegram-token"),
+        openrouter_api_key=SecretStr("test-openrouter-key"),
+        owner_id=owner_id,
+        per_user_daily_cap=cap,
+    )
+
+
+@dataclass
+class _FakeUser:
+    id: int
+
+
+@dataclass
+class _FakeChat:
+    id: int = 1
+
+
+class _FakeMessage:
+    def __init__(
+        self,
+        *,
+        from_user: _FakeUser | None,
+        photo: object = None,
+        document: object = None,
+    ) -> None:
+        self.from_user = from_user
+        self.photo = photo
+        self.document = document
+        self.chat = _FakeChat()
+        self.answer = AsyncMock()
+
+
+async def _run_middleware(deps: Deps, message: _FakeMessage) -> AsyncMock:
+    handler = AsyncMock(return_value="handled")
+    await AccessMiddleware()(handler, message, {"deps": deps})
+    return handler
+
+
+async def test_middleware_blocks_unknown_photo_user_zero_http(db: aiosqlite.Connection) -> None:
+    request_log: list[str] = []
+
+    def transport_handler(request: httpx.Request) -> httpx.Response:
+        request_log.append(request.url.path)
+        return httpx.Response(200, json={})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport_handler)) as client:
+        deps = Deps(settings=_middleware_settings(), roster=ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=1), photo=["p"])
+        handler = await _run_middleware(deps, message)
+
+    handler.assert_not_called()
+    assert request_log == []
+
+
+async def test_middleware_photo_refusal_copy_for_unallowlisted_user(
+    db: aiosqlite.Connection,
+) -> None:
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_middleware_settings(), roster=ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=1), photo=["p"])
+        await _run_middleware(deps, message)
+
+    message.answer.assert_called_once()
+    assert "invite-only" in message.answer.call_args.kwargs["text"]
+
+
+async def test_middleware_allowlisted_user_under_cap_reaches_handler(
+    db: aiosqlite.Connection,
+) -> None:
+    await ensure_user(db, 7)
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_middleware_settings(cap=40), roster=ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=7), photo=["p"])
+        handler = await _run_middleware(deps, message)
+
+    handler.assert_called_once()
+
+
+async def test_middleware_allowlisted_user_at_cap_refused(db: aiosqlite.Connection) -> None:
+    await ensure_user(db, 8)
+    await try_consume_daily(db, 8, cap=1, day="2026-09-10")
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_middleware_settings(cap=1), roster=ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=8), photo=["p"])
+        handler = await _run_middleware(deps, message)
+
+    handler.assert_not_called()
+    message.answer.assert_called_once()
+    assert "today's questions" in message.answer.call_args.kwargs["text"]
+
+
+async def test_middleware_drops_message_with_no_from_user(db: aiosqlite.Connection) -> None:
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_middleware_settings(), roster=ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=None, photo=["p"])
+        handler = await _run_middleware(deps, message)
+
+    handler.assert_not_called()
+    message.answer.assert_not_called()
+
+
+async def test_middleware_owner_bypasses_without_users_row(db: aiosqlite.Connection) -> None:
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_middleware_settings(owner_id=999), roster=ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=999), photo=["p"])
+        handler = await _run_middleware(deps, message)
+
+    handler.assert_called_once()
+
+
+async def test_middleware_refuses_adduser_from_non_allowlisted_non_owner(
+    db: aiosqlite.Connection,
+) -> None:
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_middleware_settings(owner_id=999), roster=ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=1))
+        handler = await _run_middleware(deps, message)
+
+    handler.assert_not_called()
+    message.answer.assert_called_once()
+
+
+async def test_middleware_text_message_does_not_consume_daily_slot(
+    db: aiosqlite.Connection,
+) -> None:
+    await ensure_user(db, 9)
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_middleware_settings(cap=1), roster=ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=9))
+        handler = await _run_middleware(deps, message)
+
+    handler.assert_called_once()
+    cursor = await db.execute("SELECT daily_count FROM users WHERE telegram_id = 9")
+    row = await cursor.fetchone()
+    assert row[0] == 0
+
+
+async def test_middleware_database_error_refuses_not_pass_through(db: aiosqlite.Connection) -> None:
+    await ensure_user(db, 10)
+    await db.close()
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_middleware_settings(), roster=ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=10), photo=["p"])
+        handler = await _run_middleware(deps, message)
+
+    handler.assert_not_called()
