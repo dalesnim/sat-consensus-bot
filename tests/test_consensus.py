@@ -1,7 +1,7 @@
 import inspect
 
 from bot.orchestrator.consensus import MIN_VALID_RESPONSES_DEFAULT, tally
-from bot.orchestrator.contract import AttemptResult, ChoiceVerdict, Choices, Verdict
+from bot.orchestrator.contract import AttemptResult, Choices, ChoiceVerdict, Verdict
 
 
 def make_ok(
