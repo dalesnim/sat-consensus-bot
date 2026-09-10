@@ -69,10 +69,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **DATA-01**: Bot computes a perceptual hash of every submitted image at `hash_size=16`
 - [ ] **DATA-02**: An exact perceptual hash match returns the stored result with no inference; no fuzzy Hamming-distance matching in v1
-- [ ] **DATA-03**: Every question is persisted with its hash, image file id, question type, consensus answer, consensus state, ground truth, and user
-- [ ] **DATA-04**: Every model attempt is persisted with model id, answer, confidence, raw JSON, latency, token counts, computed cost, and error
+- [x] **DATA-03**: Every question is persisted with its hash, image file id, question type, consensus answer, consensus state, ground truth, and user
+- [x] **DATA-04**: Every model attempt is persisted with model id, answer, confidence, raw JSON, latency, token counts, computed cost, and error
 - [ ] **DATA-05**: Replies served from cache are flagged as such in persistence
-- [ ] **DATA-06**: Cross-model transcription divergence is logged, so correlated OCR hallucination is detectable after the fact
+- [x] **DATA-06**: Cross-model transcription divergence is logged, so correlated OCR hallucination is detectable after the fact
 
 ### Access & Cost Control
 
@@ -175,10 +175,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-05 | Phase 3 | Pending |
 | DATA-01 | Phase 2 | Pending |
 | DATA-02 | Phase 2 | Pending |
-| DATA-03 | Phase 2 | Pending |
-| DATA-04 | Phase 2 | Pending |
+| DATA-03 | Phase 2 | Complete |
+| DATA-04 | Phase 2 | Complete |
 | DATA-05 | Phase 2 | Pending |
-| DATA-06 | Phase 2 | Pending |
+| DATA-06 | Phase 2 | Complete |
 | ACC-01 | Phase 2 | Pending |
 | ACC-02 | Phase 2 | Pending |
 | ACC-03 | Phase 2 | Pending |

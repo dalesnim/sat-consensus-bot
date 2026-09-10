@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v4.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-06-PLAN.md
-last_updated: "2026-09-10T16:39:36.744Z"
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-09-10T18:29:47.680Z"
 last_activity: 2026-09-10
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 7
-  completed_plans: 6
-  percent: 0
+  completed_phases: 1
+  total_plans: 12
+  completed_plans: 8
+  percent: 67
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-10)
 
 **Core value:** Honest confidence signaling — when models unanimously agree the user can trust that; when they split the user must see the split rather than a fabricated single answer.
-**Current focus:** Phase 1 — Core Inference Loop
+**Current focus:** Phase 2 — Persistence, Caching & Cost Control
 
 ## Current Position
 
-Phase: 1 (Core Inference Loop) — EXECUTING
-Plan: 4 of 7
+Phase: 2 (Persistence, Caching & Cost Control) — EXECUTING
+Plan: 1 of 5 complete (02-01-PLAN.md done; 02-02-PLAN.md next)
 Status: Ready to execute
 Last activity: 2026-09-10
 
-Progress: [█████████░] 86%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [█████████░] 86%
 | Phase 01 P01 | 20min | 4 tasks | 19 files |
 | Phase 01 P05 | 25min | 2 tasks | 4 files |
 | Phase 01 P06 | 30min | 2 tasks | 5 files |
+| Phase 02 P01 | 15min | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,7 @@ Recent decisions affecting current work:
 - [Phase 01-06]: not_sat_verbal/multiple_questions majority checks gated on len(voters) >= min_valid_responses, reconciling the plan's two stated behaviors
 - [Phase 01-06]: httpx.AsyncClient boot-validation client kept open for the whole process lifetime and shared into Deps for the six-way fan-out
 - [Phase 01-06]: handlers/ingest.py collapses F.photo and F.document into one shared _handle_update since select_file_id already implements document-over-photo preference
+- [Phase 02]: DATA-06's cross-model transcription overlap score is persisted as ConsensusResult.min_transcription_overlap, not just logged, satisfying the audit requirement — The renamed _min_cross_lab_overlap returns the score itself instead of discarding it after the boolean check
 
 ### Pending Todos
 
@@ -98,6 +100,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-10T16:39:36.740Z
-Stopped at: Completed 01-06-PLAN.md
+Last session: 2026-09-10T18:29:47.676Z
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
