@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v4.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-05-PLAN.md
-last_updated: "2026-09-10T16:27:40.637Z"
+stopped_at: Completed 01-06-PLAN.md
+last_updated: "2026-09-10T16:39:36.744Z"
 last_activity: 2026-09-10
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-09-10)
 ## Current Position
 
 Phase: 1 (Core Inference Loop) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Status: Ready to execute
 Last activity: 2026-09-10
 
-Progress: [███████░░░] 71%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [███████░░░] 71%
 *Updated after each plan completion*
 | Phase 01 P01 | 20min | 4 tasks | 19 files |
 | Phase 01 P05 | 25min | 2 tasks | 4 files |
+| Phase 01 P06 | 30min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,9 @@ Recent decisions affecting current work:
 - [Phase 01]: Verdict elimination-discipline validator only enforces the four-choice checks when is_sat_verbal and question_count==1; otherwise answer must be None
 - [Phase 01]: reasoning.effort suppression is per-model via ModelConfig.reasoning ('omit' drops the key for Anthropic, else {'effort': value}); per-model failure isolation lives inside call_one_model's asyncio.wait_for, with gather(return_exceptions=True) as a documented backstop only
 - [Phase 01]: Repair retry (build_repair_payload) sends only REPAIR_PROMPT_TEMPLATE.format(raw=raw) as a single user message, no image, no SYSTEM_PROMPT, so it is structurally incapable of re-reasoning; raw_first_response is captured before the repair attempt for auditability
+- [Phase 01-06]: not_sat_verbal/multiple_questions majority checks gated on len(voters) >= min_valid_responses, reconciling the plan's two stated behaviors
+- [Phase 01-06]: httpx.AsyncClient boot-validation client kept open for the whole process lifetime and shared into Deps for the six-way fan-out
+- [Phase 01-06]: handlers/ingest.py collapses F.photo and F.document into one shared _handle_update since select_file_id already implements document-over-photo preference
 
 ### Pending Todos
 
@@ -94,6 +98,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-10T16:27:40.633Z
-Stopped at: Completed 01-05-PLAN.md
+Last session: 2026-09-10T16:39:36.740Z
+Stopped at: Completed 01-06-PLAN.md
 Resume file: None

@@ -19,12 +19,12 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Ingestion
 
 - [x] **ING-01**: User can send a photo of one SAT verbal question and receive a consensus reply
-- [ ] **ING-02**: Bot extracts the largest available `PhotoSize` when the image arrives as a photo
-- [ ] **ING-03**: Bot extracts raw bytes when the image arrives as a document
+- [x] **ING-02**: Bot extracts the largest available `PhotoSize` when the image arrives as a photo
+- [x] **ING-03**: Bot extracts raw bytes when the image arrives as a document
 - [ ] **ING-04**: Bot tells users to prefer document uploads over photos, because Telegram compression degrades OCR
-- [ ] **ING-05**: Bot runs a pre-flight image quality check and warns or rejects images too degraded to read reliably, before spending any inference budget
-- [ ] **ING-06**: Bot politely rejects images that are not SAT verbal questions, using the `is_sat_verbal` field in the model contract
-- [ ] **ING-07**: Bot rejects screenshots containing more than one question
+- [x] **ING-05**: Bot runs a pre-flight image quality check and warns or rejects images too degraded to read reliably, before spending any inference budget
+- [x] **ING-06**: Bot politely rejects images that are not SAT verbal questions, using the `is_sat_verbal` field in the model contract
+- [x] **ING-07**: Bot rejects screenshots containing more than one question
 - [ ] **ING-08**: Bot displays a typing action while inference runs
 
 ### Inference
@@ -42,7 +42,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **INF-11**: Each model response is validated against the strict JSON contract with pydantic v2
 - [x] **INF-12**: A parse failure triggers exactly one repair retry scoped to syntax extraction only, so the repair cannot change the model's answer
 - [x] **INF-13**: A model that still fails after the repair retry is recorded as abstaining for that question
-- [ ] **INF-14**: Two or more abstentions in a round visibly degrades the confidence reported to the user
+- [x] **INF-14**: Two or more abstentions in a round visibly degrades the confidence reported to the user
 - [x] **INF-15**: A question is classified into one of the eleven College Board question types
 
 ### Consensus Reporting
@@ -51,7 +51,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CON-02**: Bot reports the number of distinct labs represented within the majority alongside the vote count
 - [ ] **CON-03**: 6/6 or 5/1 reports as strong agreement with merged reasoning
 - [ ] **CON-04**: 4/2 reports as majority and contested, showing both sides' elimination reasoning
-- [ ] **CON-05**: 3/3 or worse reports as unresolved, showing every distinct position and advising the user to ask a teacher
+- [x] **CON-05**: 3/3 or worse reports as unresolved, showing every distinct position and advising the user to ask a teacher
 - [x] **CON-06**: Reasoning appears first in the reply; the consensus letter appears last inside a MarkdownV2 spoiler
 - [x] **CON-07**: Bot never asserts a correct answer — replies state only what the models chose
 - [ ] **CON-08**: All model-generated text is escaped for MarkdownV2 so a formatting character cannot cause the reply to fail to send
@@ -137,12 +137,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CFG-05 | Phase 1 | Complete |
 | CFG-06 | Phase 1 | Pending |
 | ING-01 | Phase 1 | Complete |
-| ING-02 | Phase 1 | Pending |
-| ING-03 | Phase 1 | Pending |
+| ING-02 | Phase 1 | Complete |
+| ING-03 | Phase 1 | Complete |
 | ING-04 | Phase 1 | Pending |
-| ING-05 | Phase 1 | Pending |
-| ING-06 | Phase 1 | Pending |
-| ING-07 | Phase 1 | Pending |
+| ING-05 | Phase 1 | Complete |
+| ING-06 | Phase 1 | Complete |
+| ING-07 | Phase 1 | Complete |
 | ING-08 | Phase 3 | Pending |
 | INF-01 | Phase 1 | Complete |
 | INF-02 | Phase 1 | Complete |
@@ -157,13 +157,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INF-11 | Phase 1 | Complete |
 | INF-12 | Phase 1 | Complete |
 | INF-13 | Phase 1 | Complete |
-| INF-14 | Phase 1 | Pending |
+| INF-14 | Phase 1 | Complete |
 | INF-15 | Phase 1 | Complete |
 | CON-01 | Phase 1 | Pending |
 | CON-02 | Phase 1 | Pending |
 | CON-03 | Phase 1 | Pending |
 | CON-04 | Phase 1 | Pending |
-| CON-05 | Phase 1 | Pending |
+| CON-05 | Phase 1 | Complete |
 | CON-06 | Phase 1 | Complete |
 | CON-07 | Phase 1 | Complete |
 | CON-08 | Phase 3 | Pending |
