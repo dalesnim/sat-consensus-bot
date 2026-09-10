@@ -112,7 +112,7 @@ Two types get extra prompt handling: `command_of_evidence_quantitative` must res
 - **Security**: Allowlist-only access; no open registration
 - **Budget**: Hard global daily spend cap enforced in code, with a degraded cheaper-model mode above the cap
 - **Code style**: Full type hints, Ruff clean, minimal diffs, no unrequested refactoring, no inline comments unless a line is genuinely non-obvious
-- **Process**: Stop after each build-order step and show the diff before continuing — maps to GSD phase gates
+- **Process**: YOLO mode — phases auto-approve and execute without per-step diff review. This supersedes the original spec's "stop after each numbered step and show me the diff" line, dropped in favor of speed during initialization
 
 ## Key Decisions
 
