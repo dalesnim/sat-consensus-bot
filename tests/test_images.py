@@ -162,6 +162,24 @@ class TestGradeImage:
                 blur_reject=BLUR_REJECT,
             )
 
+    def test_width_and_height_match_decoded_dimensions_in_every_case(self) -> None:
+        cases = [
+            _sharp_page_bytes(),
+            _sharp_page_bytes(200, 260),
+            _blurred_page_bytes(radius=8),
+            _blurred_page_bytes(radius=2),
+        ]
+        for data in cases:
+            with Image.open(io.BytesIO(data)) as image:
+                expected = image.size
+            report = grade_image(
+                data,
+                min_dimension=MIN_DIMENSION,
+                blur_warn=BLUR_WARN,
+                blur_reject=BLUR_REJECT,
+            )
+            assert (report.width, report.height) == expected
+
     def test_respects_caller_supplied_min_dimension(self) -> None:
         report = grade_image(
             _sharp_page_bytes(),
