@@ -8,6 +8,7 @@ from aiogram.utils.formatting import Text
 
 from bot.db.users import add_user
 from bot.pipeline import Deps
+from bot.runtime_state import is_paused, set_paused
 
 logger = logging.getLogger(__name__)
 
@@ -55,3 +56,44 @@ async def handle_adduser(message: Message, command: CommandObject, deps: Deps) -
         await _send(message, f"Added {telegram_id}. They can start sending questions now.")
     else:
         await _send(message, f"{telegram_id} already has access.")
+
+
+def _is_owner(message: Message, deps: Deps) -> bool:
+    if deps.settings.owner_id is None:
+        logger.critical("OWNER_ID is unset; owner commands are disabled for everyone")
+        return False
+    return message.from_user is not None and message.from_user.id == deps.settings.owner_id
+
+
+@router.message(Command("pause"))
+async def handle_pause(message: Message, deps: Deps) -> None:
+    if not _is_owner(message, deps):
+        await _send(message, _REFUSAL_TEXT)
+        return
+    set_paused(True)
+    logger.warning("owner paused the bot")
+    await _send(message, "Paused. Questions are refused until you send /resume.")
+
+
+@router.message(Command("resume"))
+async def handle_resume(message: Message, deps: Deps) -> None:
+    if not _is_owner(message, deps):
+        await _send(message, _REFUSAL_TEXT)
+        return
+    set_paused(False)
+    logger.warning("owner resumed the bot")
+    await _send(message, "Resumed. Send a question whenever you're ready.")
+
+
+@router.message(Command("status"))
+async def handle_status(message: Message, deps: Deps) -> None:
+    if not _is_owner(message, deps):
+        await _send(message, _REFUSAL_TEXT)
+        return
+    state = "PAUSED" if is_paused() else "RUNNING"
+    models = len(deps.roster.models)
+    tiebreak = deps.roster.tiebreak_model.id if deps.roster.tiebreak_model else "none"
+    await _send(
+        message,
+        f"{state}\n{models} models in the round\ntiebreak: {tiebreak}",
+    )

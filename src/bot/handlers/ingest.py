@@ -10,6 +10,7 @@ from bot.formatting.reply import build_rejection
 from bot.images.extract import ImageSource, select_file_id
 from bot.orchestrator.contract import RejectionReason
 from bot.pipeline import Deps, answer_question
+from bot.runtime_state import is_paused
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,14 @@ async def _send(message: Message, content: Text) -> None:
         await message.answer(text=kwargs["text"])
 
 
+_PAUSED_TEXT = "The bot is paused right now. Try again a bit later."
+
+
 async def _handle_update(message: Message, deps: Deps) -> None:
+    if is_paused():
+        await _send(message, Text(_PAUSED_TEXT))
+        return
+
     selection = select_file_id(message.photo, message.document)
     if selection is None:
         rejection = build_rejection(RejectionReason.no_image, source_is_photo=bool(message.photo))
