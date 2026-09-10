@@ -51,7 +51,7 @@ def test_load_roster_ids_in_order() -> None:
         "openai/gpt-6-astra",
         "openai/gpt-5.6-sol",
         "google/gemini-3.7-flash",
-        "deepseek/deepseek-v4.1-flash",
+        "mistralai/mistral-large-2512",
     ]
 
 
