@@ -34,12 +34,13 @@ def _jaccard(tokens_a: set[str], tokens_b: set[str]) -> float:
     return len(tokens_a & tokens_b) / union
 
 
-def _transcription_divergence(ok_results: Sequence[AttemptResult]) -> bool:
+def _min_cross_lab_overlap(ok_results: Sequence[AttemptResult]) -> float | None:
     token_sets = [
         (result, _normalize_tokens(result.verdict.passage_transcription))
         for result in ok_results
         if result.verdict is not None
     ]
+    min_score: float | None = None
     for i in range(len(token_sets)):
         result_a, tokens_a = token_sets[i]
         for j in range(i + 1, len(token_sets)):
@@ -54,8 +55,9 @@ def _transcription_divergence(ok_results: Sequence[AttemptResult]) -> bool:
                     result_b.model_id,
                     score,
                 )
-                return True
-    return False
+            if min_score is None or score < min_score:
+                min_score = score
+    return min_score
 
 
 def _selected_reason(result: AttemptResult) -> str | None:
@@ -114,6 +116,7 @@ def tally(
             degraded=degraded,
             transcription_divergence=False,
             question_type=None,
+            min_transcription_overlap=None,
         )
 
     voters_by_letter: dict[str, list[AttemptResult]] = {}
@@ -167,6 +170,9 @@ def tally(
     else:
         labs_in_majority = len({result.lab for result in ok_results})
 
+    min_overlap = _min_cross_lab_overlap(ok_results)
+    divergence = min_overlap is not None and min_overlap < _DIVERGENCE_THRESHOLD
+
     return ConsensusResult(
         tier=tier,
         winning_letter=winning_letter,
@@ -176,6 +182,7 @@ def tally(
         abstentions=abstentions,
         labs_in_majority=labs_in_majority,
         degraded=degraded,
-        transcription_divergence=_transcription_divergence(ok_results),
+        transcription_divergence=divergence,
         question_type=_modal_question_type(ok_results),
+        min_transcription_overlap=min_overlap,
     )

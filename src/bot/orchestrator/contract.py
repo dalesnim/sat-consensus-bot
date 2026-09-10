@@ -123,6 +123,7 @@ class ConsensusResult(BaseModel):
     degraded: bool
     transcription_divergence: bool
     question_type: QuestionType | None
+    min_transcription_overlap: float | None = None
 
 
 class AttemptResult(BaseModel):
