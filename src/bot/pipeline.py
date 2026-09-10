@@ -8,12 +8,13 @@ import httpx
 from aiogram.utils.formatting import Text
 
 from bot.config import RosterConfig, Settings
+from bot.db import questions as questions_repo
 from bot.db.attempts import insert_attempts
 from bot.db.questions import insert_question
 from bot.formatting.reply import build_rejection, build_reply
-from bot.images.extract import QualityGrade, grade_image, to_data_url
+from bot.images.extract import QualityGrade, compute_phash, grade_image, to_data_url
 from bot.orchestrator.consensus import tally
-from bot.orchestrator.contract import RejectionReason
+from bot.orchestrator.contract import ConsensusResult, RejectionReason
 from bot.orchestrator.fanout import call_one_model, run_round
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,60 @@ async def answer_question(
             report.height,
             report.blur_variance,
         )
+
+    try:
+        phash = compute_phash(image_bytes)
+    except ValueError:
+        logger.warning("rejecting image undecodable at phash stage: bytes=%d", len(image_bytes))
+        return build_rejection(RejectionReason.unreadable_image, source_is_photo=source_is_photo)
+
+    image_sha256 = hashlib.sha256(image_bytes).hexdigest()
+
+    cached = None
+    try:
+        cached = await questions_repo.find_cached_question(deps.db, phash)
+    except Exception:
+        logger.error("cache lookup failed for phash=%s", phash, exc_info=True)
+
+    if cached is not None:
+        sha_match = cached.image_sha256 == image_sha256
+        consensus = ConsensusResult.model_validate_json(cached.consensus_json)
+
+        new_question_id: int | None = None
+        try:
+            new_question_id = await insert_question(
+                deps.db,
+                phash=phash,
+                image_sha256=image_sha256,
+                image_file_id=image_file_id,
+                user_id=user_id,
+                consensus=consensus,
+                served_from_cache=True,
+                source_question_id=cached.id,
+            )
+        except Exception:
+            logger.error(
+                "failed to persist cache-hit audit row for user_id=%s", user_id, exc_info=True
+            )
+
+        if not sha_match:
+            logger.warning(
+                "phash collision suspected: source_question_id=%s new_question_id=%s "
+                "cached_sha=%s new_sha=%s",
+                cached.id,
+                new_question_id,
+                cached.image_sha256,
+                image_sha256,
+            )
+
+        logger.info(
+            "cache hit: phash=%s source_question_id=%d user_id=%s sha_match=%s",
+            phash,
+            cached.id,
+            user_id,
+            sha_match,
+        )
+        return build_reply(consensus, source_is_photo=source_is_photo)
 
     try:
         data_url = to_data_url(image_bytes)
@@ -133,10 +188,9 @@ async def answer_question(
     )
 
     try:
-        image_sha256 = hashlib.sha256(image_bytes).hexdigest()
         question_id = await insert_question(
             deps.db,
-            phash="",
+            phash=phash,
             image_sha256=image_sha256,
             image_file_id=image_file_id,
             user_id=user_id,
