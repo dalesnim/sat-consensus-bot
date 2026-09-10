@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v4.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-09-10T18:44:28.422Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-09-10T20:30:36.365Z"
 last_activity: 2026-09-10
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 12
-  completed_plans: 8
-  percent: 0
+  completed_plans: 10
+  percent: 33
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-10)
 
 **Core value:** Honest confidence signaling — when models unanimously agree the user can trust that; when they split the user must see the split rather than a fabricated single answer.
-**Current focus:** Phase 2 — Persistence, Caching & Cost Control
+**Current focus:** Phase 02 — persistence-caching-cost-control
 
 ## Current Position
 
-Phase: 2 (Persistence, Caching & Cost Control) — EXECUTING
-Plan: 2 of 5 complete (02-01-PLAN.md done; 02-02-PLAN.md next)
+Phase: 02 (persistence-caching-cost-control) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
 Last activity: 2026-09-10
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [███████░░░] 67%
 | Phase 01 P06 | 30min | 2 tasks | 5 files |
 | Phase 02 P01 | 15min | 3 tasks | 17 files |
 | Phase 02 P03 | 9min | 3 tasks | 9 files |
+| Phase 02 P02 | 22min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,9 @@ Recent decisions affecting current work:
 - [Phase 02-03]: try_consume_daily is one atomic conditional UPDATE folding allowlist check + UTC day rollover + cap check + increment; verified race-safe with a 10-way asyncio.gather test
 - [Phase 02-03]: AccessMiddleware registered as dispatcher.message.outer_middleware before include_router so every router is covered; fails closed on any exception including a broken DB connection
 - [Phase 02-03]: OWNER_ID defaults to None and fails closed - /adduser and the middleware owner bypass are both disabled entirely when unset, never open
+- [Phase 02-02]: find_cached_question accessed via qualified module import (bot.db.questions as questions_repo) rather than a bare name import, so pipeline.py has exactly one literal occurrence of the function name
+- [Phase 02-02]: SHA-256 mismatch warning logged after the cache-hit audit row insert so the log line can name both question ids (source and newly inserted)
+- [Phase 02-02]: cache-hit insert_question wrapped in its own try/except so a DB write failure on a free cache hit degrades gracefully instead of crashing the response
 
 ### Pending Todos
 
@@ -104,6 +108,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-10T18:44:28.418Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-09-10T20:30:36.360Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
