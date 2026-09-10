@@ -9,3 +9,5 @@ dist/
 *.egg-info/
 .DS_Store
 .claude/worktrees/
+bot.log
+.bot.pid

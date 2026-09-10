@@ -3,6 +3,7 @@ import logging
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message
+from aiogram.utils.chat_action import ChatActionSender
 from aiogram.utils.formatting import Text
 
 from bot.formatting.reply import build_rejection
@@ -40,13 +41,14 @@ async def _handle_update(message: Message, deps: Deps) -> None:
     data = buffer.read()
     logger.info("received update chat_id=%s bytes=%d", message.chat.id, len(data))
 
-    content = await answer_question(
-        deps,
-        data,
-        source_is_photo=(source is ImageSource.photo),
-        user_id=message.from_user.id,
-        image_file_id=file_id,
-    )
+    async with ChatActionSender.typing(bot=message.bot, chat_id=message.chat.id):
+        content = await answer_question(
+            deps,
+            data,
+            source_is_photo=(source is ImageSource.photo),
+            user_id=message.from_user.id,
+            image_file_id=file_id,
+        )
     await _send(message, content)
 
 
