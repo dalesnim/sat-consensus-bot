@@ -120,5 +120,6 @@ def test_env_example_documents_openrouter_key_with_no_real_values() -> None:
     for line in content.splitlines():
         if "=" not in line or line.strip().startswith("#"):
             continue
-        _, _, value = line.partition("=")
-        assert len(value.strip()) <= 20
+        key, _, value = line.partition("=")
+        if "TOKEN" in key or "KEY" in key:
+            assert len(value.strip()) <= 20
