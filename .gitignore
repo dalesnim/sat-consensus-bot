@@ -8,3 +8,4 @@ data/
 dist/
 *.egg-info/
 .DS_Store
+.claude/worktrees/
