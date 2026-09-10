@@ -1,11 +1,13 @@
 import logging
+from datetime import UTC, datetime
 
 from aiogram import Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
-from aiogram.utils.formatting import Text
+from aiogram.utils.formatting import Bold, Text
 
+from bot.cost.report import CostReport, build_cost_report
 from bot.db.users import add_user
 from bot.pipeline import Deps
 from bot.runtime_state import is_paused, set_paused
@@ -21,8 +23,9 @@ _REFUSAL_TEXT = (
 )
 
 
-async def _send(message: Message, text: str) -> None:
-    kwargs = Text(text).as_kwargs()
+async def _send(message: Message, content: str | Text) -> None:
+    text_obj = content if isinstance(content, Text) else Text(content)
+    kwargs = text_obj.as_kwargs()
     try:
         await message.answer(**kwargs)
     except TelegramBadRequest:
@@ -97,3 +100,51 @@ async def handle_status(message: Message, deps: Deps) -> None:
         message,
         f"{state}\n{models} models in the round\ntiebreak: {tiebreak}",
     )
+
+
+def _cost_report_nodes(report: CostReport) -> list[str | Bold]:
+    nodes: list[str | Bold] = [
+        Bold(f"Today (UTC {report.day})"),
+        "\n",
+        f"${report.spend_today:.4f} spent of ${report.cap_usd:.4f} cap",
+    ]
+    if report.reserved_today > report.spend_today:
+        nodes.append(f", ${report.reserved_today:.4f} reserved")
+    nodes.extend(
+        [
+            "\n\n",
+            Bold("Last 7 days"),
+            "\n",
+            f"${report.spend_week:.4f}",
+            "\n\n",
+            Bold("Questions today"),
+            "\n",
+            f"{report.questions_today} asked, {report.cache_hits_today} from cache "
+            f"({report.cache_hit_rate_today:.1f}%)",
+        ]
+    )
+    if report.reduced_rounds_today:
+        nodes.append(f", {report.reduced_rounds_today} on the reduced set")
+    nodes.extend(
+        [
+            "\n\n",
+            Bold("Cost per question"),
+            "\n",
+            f"${report.cost_per_question_today:.4f} today, "
+            f"${report.cost_per_question_all_time:.4f} all time",
+            "\n\n",
+            "Daily figures reset at 00:00 UTC.",
+        ]
+    )
+    return nodes
+
+
+@router.message(Command("cost"))
+async def handle_cost(message: Message, deps: Deps) -> None:
+    if not _is_owner(message, deps):
+        await _send(message, _REFUSAL_TEXT)
+        return
+    report = await build_cost_report(
+        deps.db, cap_usd=deps.settings.daily_spend_cap_usd, now=datetime.now(UTC)
+    )
+    await _send(message, Text(*_cost_report_nodes(report)))

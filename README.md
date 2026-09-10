@@ -63,3 +63,35 @@ python -m bot
 docker compose up -d --build
 docker compose logs -f bot
 ```
+
+## Operations
+
+### Environment variables
+
+| Variable | Purpose |
+|----------|---------|
+| `OWNER_ID` | Numeric Telegram user id of the bot owner. Gates `/adduser`, `/cost`, `/pause`, `/resume`, and `/status`. Unset disables all owner commands for everyone (fails closed, never open). |
+| `ALLOWED_USER_IDS` | Comma-separated Telegram user ids seeded into the allowlist at startup. Optional — buyers can also be added live with `/adduser`. |
+| `PER_USER_DAILY_CAP` | Max questions a single allowlisted user can ask per UTC day. Default `40`. |
+| `DAILY_SPEND_CAP_USD` | Global daily spend cap in USD, UTC day boundary. Above it, the bot answers with a reduced, cheaper model set and discloses the downgrade in the reply. |
+| `ROUND_COST_SAFETY_MULTIPLIER` | Multiplier applied to a round's cost estimate when reserving budget, covering a possible JSON-repair retry without a second reservation. |
+| `DB_PATH` | Path to the SQLite database file. |
+
+### Owner commands
+
+- `/adduser <telegram_id>` — grants a Telegram user access. Owner-only.
+- `/cost` — reports today's spend, the cap, the last 7 days, question and cache-hit counts,
+  and cost per question (today and all time). Owner-only; a non-owner gets the generic
+  invite-only refusal with no figures. All daily boundaries are UTC.
+
+### Database
+
+The SQLite database lives on the `sqlite_data` Docker volume and survives
+`docker compose down` (without `-v`) across redeploys.
+
+To audit cache-served rows (a cache hit has no error state, so querying is the only way to
+spot a phash collision):
+
+```bash
+sqlite3 data/bot.db "SELECT id, created_at, source_question_id FROM questions WHERE served_from_cache = 1"
+```
