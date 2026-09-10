@@ -1,8 +1,15 @@
+from dataclasses import dataclass
 from datetime import UTC, datetime
+from unittest.mock import AsyncMock
 
 import aiosqlite
+import httpx
+from pydantic import SecretStr
 
+from bot.config import ModelConfig, RosterConfig, Settings
 from bot.cost.report import build_cost_report
+from bot.handlers.owner import handle_cost
+from bot.pipeline import Deps
 
 _NOW = datetime(2026, 9, 11, 12, 0, 0, tzinfo=UTC)
 _TODAY = "2026-09-11"
@@ -201,3 +208,98 @@ async def test_cost_per_question_all_time_zero_when_no_paid_questions(
     report = await build_cost_report(db, cap_usd=5.0, now=_NOW)
 
     assert report.cost_per_question_all_time == 0.0
+
+
+_ROSTER = RosterConfig(
+    models=[ModelConfig(id="anthropic/claude-opus-5", lab="anthropic", reasoning="omit")],
+    min_distinct_labs=1,
+    max_tokens=2000,
+)
+
+
+def _settings(*, owner_id: int | None) -> Settings:
+    return Settings(
+        telegram_bot_token=SecretStr("test-telegram-token"),
+        openrouter_api_key=SecretStr("test-openrouter-key"),
+        owner_id=owner_id,
+        daily_spend_cap_usd=5.0,
+    )
+
+
+@dataclass
+class _FakeUser:
+    id: int
+
+
+class _FakeMessage:
+    def __init__(self, *, from_user: _FakeUser | None) -> None:
+        self.from_user = from_user
+        self.answer = AsyncMock()
+
+
+async def test_cost_from_owner_reports_spend_and_cache_hit_rate(
+    db: aiosqlite.Connection,
+) -> None:
+    handler_today = datetime.now(UTC).strftime("%Y-%m-%d")
+    await _insert_spend_day(db, day=handler_today, reserved_usd=0.0, actual_usd=1.5)
+    await _insert_question(db, created_at=f"{handler_today}T10:00:00+00:00")
+    await _insert_question(
+        db, created_at=f"{handler_today}T11:00:00+00:00", served_from_cache=True
+    )
+
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_settings(owner_id=999), roster=_ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=999))
+        await handle_cost(message, deps)
+
+    message.answer.assert_called_once()
+    text = message.answer.call_args.kwargs["text"]
+    assert "1.5000" in text
+    assert "5.0000" in text
+    assert "50.0" in text
+
+
+async def test_cost_from_owner_reply_contains_utc(db: aiosqlite.Connection) -> None:
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_settings(owner_id=999), roster=_ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=999))
+        await handle_cost(message, deps)
+
+    text = message.answer.call_args.kwargs["text"]
+    assert "UTC" in text
+
+
+async def test_cost_from_non_owner_refuses_with_no_numbers(db: aiosqlite.Connection) -> None:
+    await _insert_spend_day(db, day=_TODAY, reserved_usd=0.0, actual_usd=1.5)
+
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_settings(owner_id=999), roster=_ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=1))
+        await handle_cost(message, deps)
+
+    text = message.answer.call_args.kwargs["text"]
+    assert "invite-only" in text
+    assert "$" not in text
+
+
+async def test_cost_with_owner_id_unset_refuses_everyone(db: aiosqlite.Connection) -> None:
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_settings(owner_id=None), roster=_ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=999))
+        await handle_cost(message, deps)
+
+    text = message.answer.call_args.kwargs["text"]
+    assert "invite-only" in text
+
+
+async def test_cost_against_empty_database_replies_with_zeroed_figures(
+    db: aiosqlite.Connection,
+) -> None:
+    async with httpx.AsyncClient() as client:
+        deps = Deps(settings=_settings(owner_id=999), roster=_ROSTER, http=client, db=db)
+        message = _FakeMessage(from_user=_FakeUser(id=999))
+        await handle_cost(message, deps)
+
+    message.answer.assert_called_once()
+    text = message.answer.call_args.kwargs["text"]
+    assert "0.0000" in text
