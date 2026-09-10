@@ -13,7 +13,7 @@ Three phases, each a vertical slice. Phase 1 builds the entire core loop — a u
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Core Inference Loop** - A user can send a photo of an SAT verbal question and get a real six-model consensus reply within the latency budget
+- [x] **Phase 1: Core Inference Loop** - A user can send a photo of an SAT verbal question and get a real six-model consensus reply within the latency budget
 - [ ] **Phase 2: Persistence, Caching & Cost Control** - The bot remembers every question and attempt, skips re-paying for duplicate images, and stays within budget and allowlist
 - [ ] **Phase 3: Interaction & Consensus Reporting Polish** - The bot is fully usable and trustworthy for a study group — onboarding, breakdowns, corrections, and reliable message delivery
 
@@ -93,6 +93,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Inference Loop | 6/7 | In Progress|  |
+| 1. Core Inference Loop | 7/7 | Complete | 2026-09-10 |
 | 2. Persistence, Caching & Cost Control | 2/5 | In Progress|  |
 | 3. Interaction & Consensus Reporting Polish | 0/TBD | Not started | - |
