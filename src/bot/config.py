@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     openrouter_api_key: SecretStr
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     models_config_path: Path = Path("models.yaml")
+    db_path: Path = Path("data/bot.db")
     per_model_timeout_seconds: int = 47
     round_timeout_seconds: int = 50
     min_valid_responses: int = 3
