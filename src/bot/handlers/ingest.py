@@ -31,12 +31,22 @@ async def _handle_update(message: Message, deps: Deps) -> None:
         await _send(message, rejection)
         return
 
+    if message.from_user is None:
+        logger.warning("received update with no from_user chat_id=%s", message.chat.id)
+        return
+
     file_id, source = selection
     buffer = await message.bot.download(file_id)
     data = buffer.read()
     logger.info("received update chat_id=%s bytes=%d", message.chat.id, len(data))
 
-    content = await answer_question(deps, data, source_is_photo=(source is ImageSource.photo))
+    content = await answer_question(
+        deps,
+        data,
+        source_is_photo=(source is ImageSource.photo),
+        user_id=message.from_user.id,
+        image_file_id=file_id,
+    )
     await _send(message, content)
 
 

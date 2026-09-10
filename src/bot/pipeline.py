@@ -1,11 +1,15 @@
+import hashlib
 import logging
 import time
 from dataclasses import dataclass
 
+import aiosqlite
 import httpx
 from aiogram.utils.formatting import Text
 
 from bot.config import RosterConfig, Settings
+from bot.db.attempts import insert_attempts
+from bot.db.questions import insert_question
 from bot.formatting.reply import build_rejection, build_reply
 from bot.images.extract import QualityGrade, grade_image, to_data_url
 from bot.orchestrator.consensus import tally
@@ -20,9 +24,17 @@ class Deps:
     settings: Settings
     roster: RosterConfig
     http: httpx.AsyncClient
+    db: aiosqlite.Connection
 
 
-async def answer_question(deps: Deps, image_bytes: bytes, *, source_is_photo: bool) -> Text:
+async def answer_question(
+    deps: Deps,
+    image_bytes: bytes,
+    *,
+    source_is_photo: bool,
+    user_id: int,
+    image_file_id: str | None,
+) -> Text:
     if not image_bytes or len(image_bytes) > deps.settings.max_image_bytes:
         logger.warning("rejecting image on byte ceiling: bytes=%d", len(image_bytes))
         return build_rejection(RejectionReason.unreadable_image, source_is_photo=source_is_photo)
@@ -92,4 +104,19 @@ async def answer_question(deps: Deps, image_bytes: bytes, *, source_is_photo: bo
         consensus.abstentions,
         time.monotonic() - started,
     )
+
+    try:
+        image_sha256 = hashlib.sha256(image_bytes).hexdigest()
+        question_id = await insert_question(
+            deps.db,
+            phash="",
+            image_sha256=image_sha256,
+            image_file_id=image_file_id,
+            user_id=user_id,
+            consensus=consensus,
+        )
+        await insert_attempts(deps.db, question_id, results)
+    except Exception:
+        logger.error("failed to persist round for user_id=%s", user_id, exc_info=True)
+
     return build_reply(consensus, source_is_photo=source_is_photo)
