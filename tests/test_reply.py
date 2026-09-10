@@ -216,7 +216,8 @@ def test_insufficient_renders_apology_and_no_spoiler() -> None:
     assert not [e for e in kwargs["entities"] if e.type == "spoiler"]
 
 
-def test_photo_source_appends_footer() -> None:
+def test_photo_source_no_longer_appends_a_tip() -> None:
+    """The document-over-photo nudge was removed at the owner's request."""
     consensus = make_consensus(
         "strong",
         positions=[Position(letter="B", votes=6, labs=4, reasoning=["Reason B."])],
@@ -225,10 +226,10 @@ def test_photo_source_appends_footer() -> None:
         labs_in_majority=4,
     )
     text = build_reply(consensus, source_is_photo=True).as_kwargs()["text"]
-    assert "send it as a file instead of a photo" in text.lower()
+    assert "send it as a file instead of a photo" not in text.lower()
 
 
-def test_document_source_omits_footer() -> None:
+def test_document_source_also_has_no_tip() -> None:
     consensus = make_consensus(
         "strong",
         positions=[Position(letter="B", votes=6, labs=4, reasoning=["Reason B."])],

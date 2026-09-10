@@ -9,10 +9,6 @@ from bot.orchestrator.contract import (
 )
 
 _REASONING_CAP = 4
-_PHOTO_TIP = (
-    "Tip: send it as a file instead of a photo — Telegram compresses photos and that costs "
-    "accuracy."
-)
 _TEACHER_LINE = "The models don't agree here — worth asking a teacher about."
 _NO_ANSWER = "I couldn't generate an answer for that."
 
@@ -146,10 +142,6 @@ def build_reply(consensus: ConsensusResult, *, source_is_photo: bool) -> Text:
     nodes.append("\n".join(_breakdown(consensus)))
     nodes.append("\n")
     nodes.append(Italic(_tally_footer(consensus)))
-
-    if source_is_photo:
-        nodes.append("\n\n")
-        nodes.append(_PHOTO_TIP)
 
     return Text(*nodes)
 
