@@ -1,10 +1,8 @@
-from aiogram.utils.formatting import Spoiler, Text
+from aiogram.utils.formatting import Bold, Spoiler, Text
 
 from bot.orchestrator.contract import ConsensusResult, Position, RejectionReason
 
-_INSUFFICIENT_APOLOGY = (
-    "Sorry, not enough models answered to report a consensus this time. Please try again."
-)
+_STRONG_REASONING_CAP = 4
 _PHOTO_TIP = (
     "Tip: send it as a file instead of a photo — Telegram compresses photos and that costs "
     "accuracy."
@@ -25,61 +23,77 @@ _REJECTION_COPY: dict[RejectionReason, str] = {
 }
 
 
+def _insufficient_apology(total_valid: int) -> str:
+    return (
+        f"Only {total_valid} of 6 models answered in time, which isn't enough to report a "
+        "consensus. Please try again."
+    )
+
+
 def _header_line(consensus: ConsensusResult) -> str:
     positions = consensus.positions
     if consensus.tier == "strong":
-        line = (
-            f"{positions[0].votes}/{consensus.total_valid} agree · "
-            f"{consensus.labs_in_majority} labs"
-        )
+        top = positions[0].votes if positions else 0
+        line = f"{top}/{consensus.total_valid} agree · {consensus.labs_in_majority} labs"
     elif consensus.tier == "contested":
         line = (
             f"{positions[0].votes}/{positions[1].votes} majority contested · "
             f"{consensus.labs_in_majority} labs"
         )
     else:
-        line = f"{positions[0].votes}/{positions[1].votes} unresolved · no consensus"
+        top = positions[0].votes if positions else 0
+        runner_up = positions[1].votes if len(positions) > 1 else 0
+        line = f"{top}/{runner_up} unresolved · no consensus"
 
     if consensus.degraded:
         line += f" · {consensus.abstentions} models did not answer"
     return line
 
 
-def _labelled_reasoning(position: Position) -> list[str]:
-    return [f"{position.letter}:", *position.reasoning]
+def _bulleted_lines(reasoning: list[str], *, cap: int | None = None) -> str:
+    lines = reasoning[:cap] if cap else reasoning
+    return "\n".join(f"• {line}" for line in lines)
+
+
+def _position_block(position: Position) -> list[str | Bold]:
+    return [
+        Bold(f"{position.letter} — {position.votes} models"),
+        "\n",
+        _bulleted_lines(position.reasoning),
+    ]
 
 
 def build_reply(consensus: ConsensusResult, *, source_is_photo: bool) -> Text:
     if consensus.tier == "insufficient":
-        return Text(_INSUFFICIENT_APOLOGY)
+        return Text(_insufficient_apology(consensus.total_valid))
 
     positions = consensus.positions
-    lines: list[str] = [_header_line(consensus)]
+    nodes: list[str | Bold | Spoiler] = [_header_line(consensus)]
 
     if consensus.tier == "strong":
-        lines.append("")
-        lines.extend(positions[0].reasoning)
+        nodes.append("\n\n")
+        nodes.append(_bulleted_lines(positions[0].reasoning, cap=_STRONG_REASONING_CAP))
     elif consensus.tier == "contested":
-        lines.append("")
-        lines.extend(_labelled_reasoning(positions[0]))
-        lines.append("")
-        lines.extend(_labelled_reasoning(positions[1]))
-    elif consensus.tier == "unresolved":
+        nodes.append("\n\n")
+        nodes.extend(_position_block(positions[0]))
+        nodes.append("\n\n")
+        nodes.extend(_position_block(positions[1]))
+    else:  # unresolved
         for position in positions:
-            lines.append("")
-            lines.extend(_labelled_reasoning(position))
-        lines.append("")
-        lines.append(_TEACHER_LINE)
+            nodes.append("\n\n")
+            nodes.extend(_position_block(position))
+        nodes.append("\n\n")
+        nodes.append(_TEACHER_LINE)
 
     if source_is_photo:
-        lines.append("")
-        lines.append(_PHOTO_TIP)
-
-    body = "\n".join(lines)
+        nodes.append("\n\n")
+        nodes.append(_PHOTO_TIP)
 
     if consensus.tier in ("strong", "contested"):
-        return Text(body, "\n", Spoiler(consensus.winning_letter))
-    return Text(body)
+        nodes.append("\n\n")
+        nodes.append(Spoiler(consensus.winning_letter))
+
+    return Text(*nodes)
 
 
 def build_rejection(reason: RejectionReason, *, source_is_photo: bool) -> Text:
