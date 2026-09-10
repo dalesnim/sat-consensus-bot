@@ -38,6 +38,15 @@ class Settings(BaseSettings):
     blur_variance_reject: float = 40.0
     log_level: str = "INFO"
     debug_log_raw_bodies: bool = False
+    owner_id: int | None = None
+    allowed_user_ids: str = ""
+    per_user_daily_cap: int = 40
+
+    @property
+    def allowlist_ids(self) -> frozenset[int]:
+        return frozenset(
+            int(part.strip()) for part in self.allowed_user_ids.split(",") if part.strip()
+        )
 
 
 def load_roster(path: Path) -> RosterConfig:
