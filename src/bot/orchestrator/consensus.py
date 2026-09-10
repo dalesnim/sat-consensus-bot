@@ -95,8 +95,27 @@ def _model_votes(results: Sequence[AttemptResult]) -> list[ModelVote]:
     return votes
 
 
+def _resolve_tiebreak(
+    results: Sequence[AttemptResult], tiebreakers: Sequence[Sequence[str]]
+) -> tuple[str | None, list[str]]:
+    """On an unresolved split, fall back to a configured pair that agrees with itself."""
+    answers = {
+        result.model_id: result.verdict.answer
+        for result in results
+        if result.status == "ok" and result.verdict is not None and result.verdict.answer
+    }
+    for pair in tiebreakers:
+        chosen = [answers.get(model_id) for model_id in pair]
+        if len(chosen) >= 2 and all(chosen) and len(set(chosen)) == 1:
+            return chosen[0], list(pair)
+    return None, []
+
+
 def tally(
-    results: Sequence[AttemptResult], *, min_valid: int = MIN_VALID_RESPONSES_DEFAULT
+    results: Sequence[AttemptResult],
+    *,
+    min_valid: int = MIN_VALID_RESPONSES_DEFAULT,
+    tiebreakers: Sequence[Sequence[str]] = (),
 ) -> ConsensusResult:
     ok_results = [result for result in results if result.status == "ok"]
     abstain_results = [result for result in results if result.status == "abstain"]
@@ -173,7 +192,14 @@ def tally(
     min_overlap = _min_cross_lab_overlap(ok_results)
     divergence = min_overlap is not None and min_overlap < _DIVERGENCE_THRESHOLD
 
+    tiebreak_letter: str | None = None
+    tiebreak_models: list[str] = []
+    if winning_letter is None and tier == "unresolved":
+        tiebreak_letter, tiebreak_models = _resolve_tiebreak(results, tiebreakers)
+
     return ConsensusResult(
+        tiebreak_letter=tiebreak_letter,
+        tiebreak_models=tiebreak_models,
         tier=tier,
         winning_letter=winning_letter,
         positions=positions,

@@ -56,8 +56,7 @@ async def answer_question(
 
     if report.grade is QualityGrade.warn:
         logger.warning(
-            "proceeding despite warn-grade image: reason=%s width=%d height=%d "
-            "blur_variance=%.2f",
+            "proceeding despite warn-grade image: reason=%s width=%d height=%d blur_variance=%.2f",
             report.reason,
             report.width,
             report.height,
@@ -85,9 +84,7 @@ async def answer_question(
     if len(voters) >= deps.settings.min_valid_responses:
         not_verbal_votes = sum(1 for r in voters if r.verdict.is_sat_verbal is False)
         if not_verbal_votes > len(voters) / 2:
-            return build_rejection(
-                RejectionReason.not_sat_verbal, source_is_photo=source_is_photo
-            )
+            return build_rejection(RejectionReason.not_sat_verbal, source_is_photo=source_is_photo)
 
         multi_question_votes = sum(1 for r in voters if r.verdict.question_count > 1)
         if multi_question_votes > len(voters) / 2:
@@ -95,7 +92,9 @@ async def answer_question(
                 RejectionReason.multiple_questions, source_is_photo=source_is_photo
             )
 
-    consensus = tally(results, min_valid=deps.settings.min_valid_responses)
+    consensus = tally(
+        results, min_valid=deps.settings.min_valid_responses, tiebreakers=deps.roster.tiebreakers
+    )
     logger.info(
         "round tallied: tier=%s has_winner=%s total_valid=%d abstentions=%d elapsed_s=%.2f",
         consensus.tier,

@@ -276,3 +276,44 @@ def test_module_has_no_forbidden_imports() -> None:
     assert "import httpx" not in source
     assert "from aiogram" not in source
     assert "from bot.config" not in source
+
+
+def test_tiebreak_fires_only_when_unresolved_and_a_configured_pair_agrees() -> None:
+    """Owner-chosen fallback: a split round defers to a pair that agrees with itself."""
+    results = [
+        make_ok("anthropic/claude-opus-5", "anthropic", "C"),
+        make_ok("openai/gpt-6-astra", "openai", "C"),
+        make_ok("x-ai/grok-4.6", "x-ai", "B"),
+        make_ok("google/gemini-3.1-pro-preview", "google", "D"),
+    ]
+    pairs = [["anthropic/claude-opus-5", "openai/gpt-6-astra"]]
+    result = tally(results, min_valid=3, tiebreakers=pairs)
+    assert result.tier == "unresolved"
+    assert result.winning_letter is None
+    assert result.tiebreak_letter == "C"
+    assert result.tiebreak_models == ["anthropic/claude-opus-5", "openai/gpt-6-astra"]
+
+
+def test_tiebreak_stays_silent_when_the_pair_disagrees() -> None:
+    results = [
+        make_ok("anthropic/claude-opus-5", "anthropic", "C"),
+        make_ok("openai/gpt-6-astra", "openai", "D"),
+        make_ok("x-ai/grok-4.6", "x-ai", "B"),
+    ]
+    pairs = [["anthropic/claude-opus-5", "openai/gpt-6-astra"]]
+    result = tally(results, min_valid=3, tiebreakers=pairs)
+    assert result.tiebreak_letter is None
+
+
+def test_tiebreak_never_overrides_a_real_majority() -> None:
+    results = [
+        make_ok("x-ai/grok-4.6", "x-ai", "B"),
+        make_ok("google/gemini-3.1-pro-preview", "google", "B"),
+        make_ok("qwen/qwen3.8-max-0902", "qwen", "B"),
+        make_ok("anthropic/claude-opus-5", "anthropic", "C"),
+        make_ok("openai/gpt-6-astra", "openai", "C"),
+    ]
+    pairs = [["anthropic/claude-opus-5", "openai/gpt-6-astra"]]
+    result = tally(results, min_valid=3, tiebreakers=pairs)
+    assert result.winning_letter == "B"
+    assert result.tiebreak_letter is None

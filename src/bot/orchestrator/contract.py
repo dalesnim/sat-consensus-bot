@@ -124,6 +124,8 @@ class ConsensusResult(BaseModel):
     transcription_divergence: bool
     question_type: QuestionType | None
     min_transcription_overlap: float | None = None
+    tiebreak_letter: Literal["A", "B", "C", "D"] | None = None
+    tiebreak_models: list[str] = []
 
 
 class AttemptResult(BaseModel):

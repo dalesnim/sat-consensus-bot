@@ -44,10 +44,10 @@ _REJECTION_COPY: dict[RejectionReason, str] = {
 }
 
 
-def _insufficient_apology(total_valid: int) -> str:
+def _insufficient_apology(total_valid: int, total_models: int) -> str:
     return (
-        f"Only {total_valid} of 6 models answered in time, which isn't enough to report a "
-        "consensus. Please try again."
+        f"Only {total_valid} of {total_models} models answered in time, which isn't enough to "
+        "report a consensus. Please try again."
     )
 
 
@@ -100,7 +100,11 @@ def _position_block(position: Position) -> list[str | Bold]:
 
 def build_reply(consensus: ConsensusResult, *, source_is_photo: bool) -> Text:
     if consensus.tier == "insufficient":
-        return Text(_insufficient_apology(consensus.total_valid))
+        return Text(
+            _insufficient_apology(
+                consensus.total_valid, consensus.total_valid + consensus.abstentions
+            )
+        )
 
     nodes: list[str | Bold | Italic] = [Bold(_topic_line(consensus)), "\n\n"]
 
@@ -118,6 +122,14 @@ def build_reply(consensus: ConsensusResult, *, source_is_photo: bool) -> Text:
             )
             nodes.append("\n")
             nodes.append(_prose(runner_up.reasoning, cap=_REASONING_CAP))
+    elif consensus.tiebreak_letter is not None:
+        names = " + ".join(m.split("/")[-1] for m in consensus.tiebreak_models)
+        nodes.append(Bold(f"Answer: {consensus.tiebreak_letter}"))
+        nodes.append("\n\n")
+        nodes.append(f"Tiebreak — the models split, so this is {names} agreeing, not consensus.")
+        for position in consensus.positions:
+            nodes.append("\n\n")
+            nodes.extend(_position_block(position))
     else:
         nodes.append(Bold("Answer: unresolved"))
         for position in consensus.positions:
