@@ -1,13 +1,32 @@
 import json
+import logging
 from pathlib import Path
 
 import aiosqlite
+import httpx
+import pytest
 
+from bot.config import Settings, load_settings
 from bot.db.attempts import insert_attempts
 from bot.db.connection import open_connection
 from bot.db.questions import insert_question
 from bot.orchestrator.consensus import tally
+from bot.pipeline import answer_question
+from tests.fixtures.verdicts import valid_verdict_json
 from tests.test_consensus import make_abstain, make_ok
+from tests.test_images import _sharp_page_bytes
+from tests.test_pipeline import MODEL_IDS, _deps, _transport
+
+
+@pytest.fixture
+def settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-telegram-token")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-openrouter-key")
+    monkeypatch.setenv("MIN_IMAGE_DIMENSION", "1000")
+    monkeypatch.setenv("BLUR_VARIANCE_WARN", "100.0")
+    monkeypatch.setenv("BLUR_VARIANCE_REJECT", "5.0")
+    monkeypatch.setenv("MIN_VALID_RESPONSES", "3")
+    return load_settings()
 
 
 async def test_open_connection_sets_wal_journal_mode(tmp_path: Path) -> None:
@@ -237,3 +256,82 @@ async def test_tally_disjoint_transcription_pair_yields_zero_overlap() -> None:
 async def test_tally_single_valid_result_has_no_overlap_score() -> None:
     result = tally([make_ok("m1", "anthropic", "B")], min_valid=1)
     assert result.min_transcription_overlap is None
+
+
+async def test_full_round_writes_one_question_and_six_attempts(
+    settings, db: aiosqlite.Connection
+) -> None:
+    responses = {model_id: valid_verdict_json("B") for model_id in MODEL_IDS}
+
+    async with httpx.AsyncClient(transport=_transport(responses)) as client:
+        await answer_question(
+            _deps(settings, client, db),
+            _sharp_page_bytes(),
+            source_is_photo=True,
+            user_id=777,
+            image_file_id="tg-file-abc",
+        )
+
+    async with db.execute("SELECT COUNT(*) FROM questions") as cursor:
+        row = await cursor.fetchone()
+    assert row[0] == 1
+
+    async with db.execute("SELECT user_id, image_file_id FROM questions LIMIT 1") as cursor:
+        row = await cursor.fetchone()
+    assert row[0] == 777
+    assert row[1] == "tg-file-abc"
+
+    async with db.execute(
+        "SELECT COUNT(*) FROM attempts a JOIN questions q ON a.question_id = q.id"
+    ) as cursor:
+        row = await cursor.fetchone()
+    assert row[0] == 6
+
+
+async def test_rejected_image_writes_no_rows(settings, db: aiosqlite.Connection) -> None:
+    oversized = b"x" * (settings.max_image_bytes + 1)
+
+    async with httpx.AsyncClient(transport=_transport()) as client:
+        result = await answer_question(
+            _deps(settings, client, db),
+            oversized,
+            source_is_photo=True,
+            user_id=1,
+            image_file_id=None,
+        )
+
+    assert "can't read this clearly" in result.as_kwargs()["text"]
+
+    async with db.execute("SELECT COUNT(*) FROM questions") as cursor:
+        row = await cursor.fetchone()
+    assert row[0] == 0
+    async with db.execute("SELECT COUNT(*) FROM attempts") as cursor:
+        row = await cursor.fetchone()
+    assert row[0] == 0
+
+
+async def test_persistence_failure_still_returns_reply(
+    settings: Settings,
+    db: aiosqlite.Connection,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def _boom(*args: object, **kwargs: object) -> int:
+        raise RuntimeError("disk full")
+
+    monkeypatch.setattr("bot.pipeline.insert_question", _boom)
+    responses = {model_id: valid_verdict_json("B") for model_id in MODEL_IDS}
+
+    with caplog.at_level(logging.ERROR, logger="bot.pipeline"):
+        async with httpx.AsyncClient(transport=_transport(responses)) as client:
+            result = await answer_question(
+                _deps(settings, client, db),
+                _sharp_page_bytes(),
+                source_is_photo=True,
+                user_id=1,
+                image_file_id="file123",
+            )
+
+    assert result.as_kwargs()["text"]
+    errors = [record for record in caplog.records if record.levelno == logging.ERROR]
+    assert len(errors) == 1

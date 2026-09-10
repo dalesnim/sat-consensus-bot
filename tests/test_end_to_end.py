@@ -1,3 +1,4 @@
+import aiosqlite
 import httpx
 from pydantic import SecretStr
 
@@ -36,10 +37,12 @@ def _agreeing_transport(answer: str = "B") -> httpx.MockTransport:
     return httpx.MockTransport(handler)
 
 
-async def test_photo_produces_consensus_reply() -> None:
+async def test_photo_produces_consensus_reply(db: aiosqlite.Connection) -> None:
     async with httpx.AsyncClient(transport=_agreeing_transport()) as client:
-        deps = Deps(settings=_settings(), roster=ROSTER, http=client)
-        result = await answer_question(deps, _sharp_page_bytes(), source_is_photo=True)
+        deps = Deps(settings=_settings(), roster=ROSTER, http=client, db=db)
+        result = await answer_question(
+            deps, _sharp_page_bytes(), source_is_photo=True, user_id=1, image_file_id="file123"
+        )
 
     kwargs = result.as_kwargs()
     text = kwargs["text"]
@@ -60,10 +63,12 @@ async def test_photo_produces_consensus_reply() -> None:
     assert "the answer is" not in lowered
 
 
-async def test_document_reply_omits_photo_tip() -> None:
+async def test_document_reply_omits_photo_tip(db: aiosqlite.Connection) -> None:
     async with httpx.AsyncClient(transport=_agreeing_transport()) as client:
-        deps = Deps(settings=_settings(), roster=ROSTER, http=client)
-        result = await answer_question(deps, _sharp_page_bytes(), source_is_photo=False)
+        deps = Deps(settings=_settings(), roster=ROSTER, http=client, db=db)
+        result = await answer_question(
+            deps, _sharp_page_bytes(), source_is_photo=False, user_id=1, image_file_id="file123"
+        )
 
     text = result.as_kwargs()["text"]
     assert "send it as a file" not in text.lower()
@@ -75,10 +80,12 @@ async def test_multiple_questions_rejection_copy() -> None:
     assert "one question per image" in text
 
 
-async def test_six_model_round_produces_exact_agreement_header() -> None:
+async def test_six_model_round_produces_exact_agreement_header(db: aiosqlite.Connection) -> None:
     async with httpx.AsyncClient(transport=_agreeing_transport()) as client:
-        deps = Deps(settings=_settings(), roster=ROSTER, http=client)
-        result = await answer_question(deps, _sharp_page_bytes(), source_is_photo=True)
+        deps = Deps(settings=_settings(), roster=ROSTER, http=client, db=db)
+        result = await answer_question(
+            deps, _sharp_page_bytes(), source_is_photo=True, user_id=1, image_file_id="file123"
+        )
 
     text = result.as_kwargs()["text"]
     assert text.startswith("📋 ")
