@@ -79,8 +79,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **ACC-01**: Only users on the allowlist can use the bot
 - [x] **ACC-02**: `OWNER_ID` can add users via `/adduser`
 - [x] **ACC-03**: Each user has a daily question cap, default 40
-- [ ] **ACC-04**: A global daily spend cap is read from the environment and enforced atomically, so concurrent requests cannot race past it
-- [ ] **ACC-05**: Above the spend cap the bot drops to a reduced cheaper model set and says so in the reply
+- [x] **ACC-04**: A global daily spend cap is read from the environment and enforced atomically, so concurrent requests cannot race past it
+- [x] **ACC-05**: Above the spend cap the bot drops to a reduced cheaper model set and says so in the reply
 - [ ] **ACC-06**: `OWNER_ID` can run `/cost` to see spend today, this week, and per question
 
 ## v2 Requirements
@@ -182,8 +182,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACC-01 | Phase 2 | Complete |
 | ACC-02 | Phase 2 | Complete |
 | ACC-03 | Phase 2 | Complete |
-| ACC-04 | Phase 2 | Pending |
-| ACC-05 | Phase 2 | Pending |
+| ACC-04 | Phase 2 | Complete |
+| ACC-05 | Phase 2 | Complete |
 | ACC-06 | Phase 2 | Pending |
 
 **Coverage:**

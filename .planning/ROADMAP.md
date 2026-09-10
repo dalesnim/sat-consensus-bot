@@ -61,14 +61,14 @@ Plans:
   4. When the global daily spend cap is hit, the bot automatically drops to a reduced cheaper model set for subsequent questions and says so in the reply.
   5. The owner can run `/cost` to see spend today, this week, and per question, and can run `/adduser` to add new allowlisted users.
 
-**Plans:** 3/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 
 - [x] 02-01-PLAN.md — SQLite foundation: schema, shared WAL connection, and every question and attempt persisted on the live path
 - [x] 02-02-PLAN.md — Exact 256-bit perceptual-hash cache, zero-cost repeat answers, cache-hit audit rows
 - [x] 02-03-PLAN.md — Allowlist paywall, atomic per-user daily cap, owner-only /adduser
-- [ ] 02-04-PLAN.md — Atomic global spend cap with reduced cheaper model set and in-reply disclosure
+- [x] 02-04-PLAN.md — Atomic global spend cap with reduced cheaper model set and in-reply disclosure
 - [ ] 02-05-PLAN.md — /cost unit-economics report plus live end-to-end verification of the phase
 
 ### Phase 3: Interaction & Consensus Reporting Polish
@@ -94,5 +94,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Core Inference Loop | 7/7 | Complete | 2026-09-10 |
-| 2. Persistence, Caching & Cost Control | 3/5 | In Progress|  |
+| 2. Persistence, Caching & Cost Control | 4/5 | In Progress|  |
 | 3. Interaction & Consensus Reporting Polish | 0/TBD | Not started | - |
