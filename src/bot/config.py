@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     openrouter_api_key: SecretStr
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
     models_config_path: Path = Path("models.yaml")
-    per_model_timeout_seconds: int = 42
-    round_timeout_seconds: int = 45
+    per_model_timeout_seconds: int = 47
+    round_timeout_seconds: int = 50
     min_valid_responses: int = 3
     max_image_bytes: int = 10485760
     min_image_dimension: int = 600

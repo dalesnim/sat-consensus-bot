@@ -47,10 +47,10 @@ def test_load_roster_ids_in_order() -> None:
     ids = [m.id for m in roster.models]
     assert ids == [
         "anthropic/claude-opus-5",
-        "anthropic/claude-sonnet-5",
         "openai/gpt-6-astra",
-        "openai/gpt-5.6-sol",
-        "google/gemini-3.7-flash",
+        "google/gemini-3.1-pro-preview",
+        "x-ai/grok-4.6",
+        "qwen/qwen3.8-max-0902",
         "mistralai/mistral-large-2512",
     ]
 
@@ -58,8 +58,15 @@ def test_load_roster_ids_in_order() -> None:
 def test_anthropic_entries_omit_reasoning() -> None:
     roster = load_roster(MODELS_YAML)
     anthropic_models = [m for m in roster.models if m.lab == "anthropic"]
-    assert len(anthropic_models) == 2
+    assert anthropic_models
     assert all(m.reasoning == "omit" for m in anthropic_models)
+
+
+def test_every_model_comes_from_a_distinct_lab() -> None:
+    """Same-lab models share failure modes, so duplicates waste ensemble votes."""
+    roster = load_roster(MODELS_YAML)
+    labs = [m.lab for m in roster.models]
+    assert len(set(labs)) == len(labs)
 
 
 def test_no_entry_has_unset_reasoning() -> None:
@@ -95,8 +102,8 @@ def test_load_settings_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "x")
     monkeypatch.setenv("OPENROUTER_API_KEY", "y")
     settings = load_settings()
-    assert settings.per_model_timeout_seconds == 42
-    assert settings.round_timeout_seconds == 45
+    assert settings.per_model_timeout_seconds == 47
+    assert settings.round_timeout_seconds == 50
 
 
 def test_load_settings_reads_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
