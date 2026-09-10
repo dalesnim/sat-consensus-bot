@@ -29,7 +29,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Inference
 
-- [ ] **INF-01**: All six configured models fire in parallel on every question — one round, no escalation cascade
+- [x] **INF-01**: All six configured models fire in parallel on every question — one round, no escalation cascade
 - [x] **INF-02**: Every model receives a byte-identical prompt and the identical image
 - [x] **INF-03**: No model receives any other model's output at any point
 - [x] **INF-04**: The shared prompt requires verbatim transcription of the passage and all four choices before any reasoning
@@ -37,11 +37,11 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **INF-06**: The shared prompt requires restating exact values read off tables or graphs for `command_of_evidence_quantitative` questions
 - [x] **INF-07**: The shared prompt requires naming the grammatical relationship between clauses for `transitions` and `boundaries` questions
 - [x] **INF-08**: The shared prompt requires answers supported by the text only, with no outside knowledge, and JSON output only
-- [ ] **INF-09**: `reasoning.effort` is forced to none/minimal on every model call, so the 30 second budget holds
-- [ ] **INF-10**: Each model call has its own timeout; a single slow or failed model cannot take down the round
+- [x] **INF-09**: `reasoning.effort` is forced to none/minimal on every model call, so the 30 second budget holds
+- [x] **INF-10**: Each model call has its own timeout; a single slow or failed model cannot take down the round
 - [x] **INF-11**: Each model response is validated against the strict JSON contract with pydantic v2
-- [ ] **INF-12**: A parse failure triggers exactly one repair retry scoped to syntax extraction only, so the repair cannot change the model's answer
-- [ ] **INF-13**: A model that still fails after the repair retry is recorded as abstaining for that question
+- [x] **INF-12**: A parse failure triggers exactly one repair retry scoped to syntax extraction only, so the repair cannot change the model's answer
+- [x] **INF-13**: A model that still fails after the repair retry is recorded as abstaining for that question
 - [ ] **INF-14**: Two or more abstentions in a round visibly degrades the confidence reported to the user
 - [x] **INF-15**: A question is classified into one of the eleven College Board question types
 
@@ -144,7 +144,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ING-06 | Phase 1 | Pending |
 | ING-07 | Phase 1 | Pending |
 | ING-08 | Phase 3 | Pending |
-| INF-01 | Phase 1 | Pending |
+| INF-01 | Phase 1 | Complete |
 | INF-02 | Phase 1 | Complete |
 | INF-03 | Phase 1 | Complete |
 | INF-04 | Phase 1 | Complete |
@@ -152,11 +152,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INF-06 | Phase 1 | Complete |
 | INF-07 | Phase 1 | Complete |
 | INF-08 | Phase 1 | Complete |
-| INF-09 | Phase 1 | Pending |
-| INF-10 | Phase 1 | Pending |
+| INF-09 | Phase 1 | Complete |
+| INF-10 | Phase 1 | Complete |
 | INF-11 | Phase 1 | Complete |
-| INF-12 | Phase 1 | Pending |
-| INF-13 | Phase 1 | Pending |
+| INF-12 | Phase 1 | Complete |
+| INF-13 | Phase 1 | Complete |
 | INF-14 | Phase 1 | Pending |
 | INF-15 | Phase 1 | Complete |
 | CON-01 | Phase 1 | Pending |

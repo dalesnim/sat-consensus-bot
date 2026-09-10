@@ -35,15 +35,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. If one or more models time out or fail to produce valid JSON, the reply still arrives on time, showing visibly degraded confidence rather than an error or a hang.
   5. The bot refuses to start, naming the offending model ID, if any configured model doesn't exist on OpenRouter, lacks image support, or if the roster spans fewer than 4 distinct labs.
 
-**Plans:** 1/7 plans executed
+**Plans:** 5/7 plans executed
 
 Plans:
 
 - [x] 01-01-PLAN.md — Walking Skeleton: scaffold, JSON contract, shared prompt, photo-in/reply-out with a stubbed round
-- [ ] 01-02-PLAN.md — models.yaml roster, typed settings, live boot validation, Docker Compose packaging
-- [ ] 01-03-PLAN.md — Telegram file selection, byte ceiling, pre-flight resolution and blur quality gate
-- [ ] 01-04-PLAN.md — Consensus tally with lab spread and abstention degradation, tier-aware reply rendering
-- [ ] 01-05-PLAN.md — Six-way parallel fan-out, forced-low reasoning effort, per-model timeout, syntax-only repair retry
+- [x] 01-02-PLAN.md — models.yaml roster, typed settings, live boot validation, Docker Compose packaging
+- [x] 01-03-PLAN.md — Telegram file selection, byte ceiling, pre-flight resolution and blur quality gate
+- [x] 01-04-PLAN.md — Consensus tally with lab spread and abstention degradation, tier-aware reply rendering
+- [x] 01-05-PLAN.md — Six-way parallel fan-out, forced-low reasoning effort, per-model timeout, syntax-only repair retry
 - [ ] 01-06-PLAN.md — Real pipeline wiring plus the not-SAT-verbal, multi-question, and too-few-voters rejection branches
 - [ ] 01-07-PLAN.md — Empirical latency spike, credential provisioning, first live round
 
@@ -85,6 +85,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Core Inference Loop | 1/7 | In Progress|  |
+| 1. Core Inference Loop | 5/7 | In Progress|  |
 | 2. Persistence, Caching & Cost Control | 0/TBD | Not started | - |
 | 3. Interaction & Consensus Reporting Polish | 0/TBD | Not started | - |
