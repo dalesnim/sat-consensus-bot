@@ -17,6 +17,7 @@ class RosterConfig(BaseModel):
     min_distinct_labs: int = Field(ge=1)
     max_tokens: int = Field(gt=0)
     tiebreakers: list[list[str]] = Field(default_factory=list)
+    tiebreak_model: ModelConfig | None = None
 
 
 class Settings(BaseSettings):

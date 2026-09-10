@@ -37,9 +37,9 @@ models:
 """
 
 
-def test_load_roster_returns_eight_models() -> None:
+def test_load_roster_returns_seven_models() -> None:
     roster = load_roster(MODELS_YAML)
-    assert len(roster.models) == 8
+    assert len(roster.models) == 7
 
 
 def test_load_roster_ids_in_order() -> None:
@@ -53,7 +53,6 @@ def test_load_roster_ids_in_order() -> None:
         "anthropic/claude-sonnet-5",
         "qwen/qwen3.8-max-0902",
         "google/gemini-3.7-flash",
-        "anthropic/claude-fable-5.1",
     ]
 
 
@@ -133,3 +132,11 @@ def test_env_example_documents_openrouter_key_with_no_real_values() -> None:
         key, _, value = line.partition("=")
         if "TOKEN" in key or "KEY" in key:
             assert len(value.strip()) <= 20
+
+
+def test_tiebreak_model_is_configured_and_outside_the_round() -> None:
+    """Fable escalates only on a split, so it must not be one of the round's models."""
+    roster = load_roster(MODELS_YAML)
+    assert roster.tiebreak_model is not None
+    assert roster.tiebreak_model.id == "anthropic/claude-fable-5.1"
+    assert roster.tiebreak_model.id not in [m.id for m in roster.models]

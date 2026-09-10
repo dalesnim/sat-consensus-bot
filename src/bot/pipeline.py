@@ -14,7 +14,7 @@ from bot.formatting.reply import build_rejection, build_reply
 from bot.images.extract import QualityGrade, grade_image, to_data_url
 from bot.orchestrator.consensus import tally
 from bot.orchestrator.contract import RejectionReason
-from bot.orchestrator.fanout import run_round
+from bot.orchestrator.fanout import call_one_model, run_round
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +95,34 @@ async def answer_question(
     consensus = tally(
         results, min_valid=deps.settings.min_valid_responses, tiebreakers=deps.roster.tiebreakers
     )
+
+    if (
+        consensus.tier == "unresolved"
+        and consensus.tiebreak_letter is None
+        and deps.roster.tiebreak_model is not None
+    ):
+        escalation = await call_one_model(
+            deps.http,
+            deps.roster.tiebreak_model,
+            data_url,
+            base_url=deps.settings.openrouter_base_url,
+            api_key=deps.settings.openrouter_api_key,
+            max_tokens=deps.roster.max_tokens,
+            per_model_timeout=deps.settings.per_model_timeout_seconds,
+        )
+        results.append(escalation)
+        if escalation.status == "ok" and escalation.verdict and escalation.verdict.answer:
+            consensus = consensus.model_copy(
+                update={
+                    "tiebreak_letter": escalation.verdict.answer,
+                    "tiebreak_models": [escalation.model_id],
+                }
+            )
+        logger.info(
+            "escalated to tiebreak model %s: answer=%s",
+            deps.roster.tiebreak_model.id,
+            escalation.verdict.answer if escalation.verdict else None,
+        )
     logger.info(
         "round tallied: tier=%s has_winner=%s total_valid=%d abstentions=%d elapsed_s=%.2f",
         consensus.tier,

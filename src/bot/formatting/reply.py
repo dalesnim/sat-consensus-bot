@@ -126,7 +126,11 @@ def build_reply(consensus: ConsensusResult, *, source_is_photo: bool) -> Text:
         names = " + ".join(m.split("/")[-1] for m in consensus.tiebreak_models)
         nodes.append(Bold(f"Answer: {consensus.tiebreak_letter}"))
         nodes.append("\n\n")
-        nodes.append(f"Tiebreak — the models split, so this is {names} agreeing, not consensus.")
+        if len(consensus.tiebreak_models) == 1:
+            note = f"Tiebreak — the models split, so {names} was asked to decide. Not consensus."
+        else:
+            note = f"Tiebreak — the models split, so this is {names} agreeing, not consensus."
+        nodes.append(note)
         for position in consensus.positions:
             nodes.append("\n\n")
             nodes.extend(_position_block(position))

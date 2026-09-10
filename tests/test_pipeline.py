@@ -323,3 +323,64 @@ async def test_clean_round_issues_exactly_six_requests(
         )
 
     assert len(request_log) == 6
+
+
+async def test_unresolved_split_escalates_to_the_tiebreak_model(
+    settings: Settings, db: aiosqlite.Connection
+) -> None:
+    """Fable is not in the round; it is called only when the round fails to decide."""
+    responses = {
+        MODEL_IDS[0]: valid_verdict_json("A"),
+        MODEL_IDS[1]: valid_verdict_json("A"),
+        MODEL_IDS[2]: valid_verdict_json("B"),
+        MODEL_IDS[3]: valid_verdict_json("B"),
+        MODEL_IDS[4]: valid_verdict_json("C"),
+        MODEL_IDS[5]: valid_verdict_json("C"),
+        "anthropic/claude-fable-5.1": valid_verdict_json("D"),
+    }
+    roster = ROSTER.model_copy(
+        update={
+            "tiebreak_model": ModelConfig(
+                id="anthropic/claude-fable-5.1", lab="anthropic", reasoning="omit"
+            )
+        }
+    )
+    async with httpx.AsyncClient(transport=_transport(responses)) as client:
+        result = await answer_question(
+            Deps(settings=settings, roster=roster, http=client, db=db),
+            _sharp_page_bytes(),
+            source_is_photo=False,
+            user_id=1,
+            image_file_id="fid",
+        )
+
+    text = result.as_kwargs()["text"]
+    assert "Answer: D" in text
+    assert "Tiebreak" in text
+    assert "claude-fable-5.1" in text
+
+
+async def test_clear_majority_never_calls_the_tiebreak_model(
+    settings: Settings, db: aiosqlite.Connection
+) -> None:
+    responses = {model_id: valid_verdict_json("C") for model_id in MODEL_IDS}
+    roster = ROSTER.model_copy(
+        update={
+            "tiebreak_model": ModelConfig(
+                id="anthropic/claude-fable-5.1", lab="anthropic", reasoning="omit"
+            )
+        }
+    )
+    async with httpx.AsyncClient(transport=_transport(responses)) as client:
+        result = await answer_question(
+            Deps(settings=settings, roster=roster, http=client, db=db),
+            _sharp_page_bytes(),
+            source_is_photo=False,
+            user_id=1,
+            image_file_id="fid",
+        )
+
+    text = result.as_kwargs()["text"]
+    assert "Answer: C" in text
+    assert "Tiebreak" not in text
+    assert "fable" not in text.lower()
