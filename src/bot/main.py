@@ -8,7 +8,9 @@ from aiogram import Bot, Dispatcher
 
 from bot.config import Settings, load_roster, load_settings
 from bot.db.connection import open_connection
+from bot.db.users import seed_allowlist
 from bot.handlers.ingest import router
+from bot.middleware.access import AccessMiddleware
 from bot.pipeline import Deps
 from bot.validation.boot import BootValidationError, validate_roster
 
@@ -49,10 +51,12 @@ async def main() -> None:
 
         conn = await open_connection(settings.db_path)
         try:
+            await seed_allowlist(conn, settings.allowlist_ids)
             deps = Deps(settings=settings, roster=roster, http=client, db=conn)
             token = settings.telegram_bot_token.get_secret_value()
             bot = Bot(token=token)
             dispatcher = Dispatcher(deps=deps)
+            dispatcher.message.outer_middleware(AccessMiddleware())
             dispatcher.include_router(router)
             await dispatcher.start_polling(bot)
         finally:
