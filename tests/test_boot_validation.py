@@ -205,3 +205,15 @@ async def test_non_json_body_raises_boot_validation_error() -> None:
             await validate_roster(
                 VALID_ROSTER, base_url="https://openrouter.ai/api/v1", client=client
             )
+
+
+def test_http_timeout_covers_the_per_model_budget() -> None:
+    """httpx's 5s default silently overrode PER_MODEL_TIMEOUT_SECONDS, so every model
+    whose time-to-first-byte exceeded 5s abstained with transport_error:ReadTimeout
+    while the round reported `insufficient`. Read must exceed the per-model budget so
+    asyncio.wait_for stays the governor."""
+    from bot.main import _http_timeout
+
+    timeout = _http_timeout(47)
+    assert timeout.read is not None and timeout.read > 47
+    assert timeout.connect is not None and timeout.connect >= 10.0

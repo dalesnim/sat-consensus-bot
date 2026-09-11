@@ -1,5 +1,6 @@
 import asyncio
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock
 
@@ -184,7 +185,10 @@ async def test_middleware_allowlisted_user_under_cap_reaches_handler(
 
 async def test_middleware_allowlisted_user_at_cap_refused(db: aiosqlite.Connection) -> None:
     await ensure_user(db, 8)
-    await try_consume_daily(db, 8, cap=1, day="2026-09-10")
+    # Must be the same UTC day the middleware computes at call time. A literal date here
+    # makes the test pass only on that one calendar day and silently stop covering the
+    # cap on every other day.
+    await try_consume_daily(db, 8, cap=1, day=datetime.now(UTC).strftime("%Y-%m-%d"))
     async with httpx.AsyncClient() as client:
         deps = Deps(settings=_middleware_settings(cap=1), roster=ROSTER, http=client, db=db)
         message = _FakeMessage(from_user=_FakeUser(id=8), photo=["p"])

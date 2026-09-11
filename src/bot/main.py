@@ -19,6 +19,17 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname
 logger = logging.getLogger(__name__)
 
 
+def _http_timeout(per_model_timeout: float) -> httpx.Timeout:
+    """httpx defaults every phase to 5s, which silently overrides the far longer
+    per-model budget enforced by asyncio.wait_for in the fan-out. Reasoning models
+    routinely take 15-30s to first byte, so the default kills them mid-round and the
+    round degrades to `insufficient` for a reason that has nothing to do with the models.
+    Read is set above the per-model budget so wait_for stays the authoritative governor
+    and abstentions are reported as `timeout` rather than `transport_error:ReadTimeout`.
+    """
+    return httpx.Timeout(connect=10.0, read=per_model_timeout + 5.0, write=30.0, pool=10.0)
+
+
 async def main() -> None:
     validate_only = "--validate-only" in sys.argv
 
@@ -36,15 +47,22 @@ async def main() -> None:
                 "MIN_VALID_RESPONSES", str(Settings.model_fields["min_valid_responses"].default)
             )
         )
+        per_model_timeout = int(
+            os.environ.get(
+                "PER_MODEL_TIMEOUT_SECONDS",
+                str(Settings.model_fields["per_model_timeout_seconds"].default),
+            )
+        )
     else:
         settings = load_settings()
         base_url = settings.openrouter_base_url
         models_config_path = settings.models_config_path
         min_valid_responses = settings.min_valid_responses
+        per_model_timeout = settings.per_model_timeout_seconds
 
     roster = load_roster(models_config_path)
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_http_timeout(per_model_timeout)) as client:
         try:
             await validate_roster(
                 roster,
