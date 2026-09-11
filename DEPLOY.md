@@ -175,16 +175,24 @@ cd /opt/satbot && git pull && docker compose up -d --build
 
 "Running" and "connected to Telegram" are different things. A container can be up while the bot is dead.
 
-**The reliable check:** with the server running, ask Telegram for updates from your laptop:
+**Read the logs — that is the honest signal:**
 
 ```bash
-curl -s "https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates?offset=-1&limit=1&timeout=0"
+docker compose logs --tail 20 bot
 ```
 
-- **`"error_code":409`** with a conflict description → **correct.** Something else is polling — your server. This is what you want to see.
-- **`"ok":true`** → **nothing is polling.** Your deploy is not actually connected, whatever the dashboard claims.
+`Run polling for bot @yourbot id=...` means it is connected. A dashboard showing
+"running" or "online" only means the container started, which is not the same thing.
 
-Then send the bot a real question and confirm a reply comes back.
+> **Do not use the `getUpdates` trick against a live bot.** It is tempting to call
+> `https://api.telegram.org/bot<TOKEN>/getUpdates` and treat a `409 Conflict` as proof
+> something else is polling. It does work as a one-off check when you believe nothing
+> is running — but Telegram gives the *newest* caller priority, so against a healthy bot
+> your request **terminates the server's poll** instead of being refused by it. The bot
+> recovers on its own, but you will have caused a brief outage and a confusing
+> `Conflict: terminated by other getUpdates request` in the logs. Read the logs instead.
+
+Finally, send the bot a real question from Telegram and confirm a reply comes back.
 
 ---
 

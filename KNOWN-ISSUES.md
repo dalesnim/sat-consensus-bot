@@ -144,6 +144,26 @@ No health check, no alerting. If it crashes you find out when a student complain
 
 **Fix:** a nightly `sqlite3 data/bot.db ".backup /somewhere/bot-$(date +%F).db"` in cron. It is one line and it is the difference between an inconvenience and losing your business records.
 
+### 14. A bad OpenRouter key passes startup and only fails on the first real question
+
+**Severity:** medium — costs you a confusing debugging session, not money
+**Where:** `src/bot/validation/boot.py`
+
+Boot validation checks every model ID against `https://openrouter.ai/api/v1/models`, which is a **public, unauthenticated** endpoint. It therefore proves the roster is valid but proves nothing about your API key.
+
+**What happens:** the bot logs a confident `roster ok: 7 models, 5 labs` and starts polling normally. Then the first real question returns `401 Unauthorized` from all seven models at once, and the user gets "not enough models responded". Confirmed live during the first server deploy, where four characters had been lost from the key while pasting.
+
+**Fix:** add an authenticated call to `https://openrouter.ai/api/v1/credits` during boot validation. It is free, requires the key, and also returns the remaining balance — so the same check can log a warning when credit is nearly exhausted. Fail startup on 401 the same way an invalid model ID does.
+
+**Workaround until then:** after changing the key, verify its length and hash rather than eyeballing it:
+```bash
+K=$(grep -E '^OPENROUTER_API_KEY=' .env | cut -d= -f2- | tr -d '\r\n')
+echo "length ${#K}  sha $(printf '%s' "$K" | sha256sum | cut -c1-16)"
+```
+Compare against a machine where the key is known to work.
+
+---
+
 ### 13. `bot.sh` prints the previous owner's bot handle
 
 Cosmetic. `bot.sh` line 27 echoes `@mb1600SATBot` on startup. Change it to yours.
